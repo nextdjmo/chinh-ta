@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sổ Tay Chính Tả — Kiểm tra l/n, ch/tr, s/x, d/gi/r</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Be+Vietnam+Pro:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #eae3cb;
+    --paper-dark: #ddd4b3;
+    --ink: #2b3a52;
+    --ink-soft: #55647a;
+    --rule: #a9c0d4;
+    --red: #a8453f;
+    --red-soft: #bd6c56;
+    --brass: #a9823f;
+    --card: #f6f1e2;
+    --popover-bg: #fbf7ec;
+    --shadow: rgba(35,50,74,.16);
+    --green: #276b45;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: rgba(0,0,0,0);}
+  html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+  body{
+    margin:0;
+    background: linear-gradient(180deg,#33445c,#232f42 40%, #232f42);
+    font-family:'Be Vietnam Pro', sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+    padding:32px 16px 60px;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{ touch-action:manipulation; }
+  .book{
+    max-width:980px;
+    margin:0 auto;
+    background:var(--paper);
+    border-radius:6px;
+    box-shadow: 0 30px 60px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.15);
+    position:relative;
+    overflow:hidden;
+  }
+  .book::before{
+    content:"";
+    position:absolute; left:0; top:0; bottom:0; width:14px;
+    background: repeating-linear-gradient(180deg, var(--brass) 0 2px, transparent 2px 10px);
+    opacity:.5;
+  }
+  header{
+    padding:34px 44px 22px 56px;
+    border-bottom:3px double var(--brass);
+    position:relative;
+  }
+  header h1{
+    font-family:'Playfair Display', serif;
+    font-size:2.1rem;
+    margin:0 0 4px;
+    letter-spacing:.5px;
+  }
+  header p.sub{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:.95rem;
+  }
+  header .tagline{
+    font-family:'Caveat', cursive;
+    color:var(--red);
+    font-size:1.35rem;
+    position:absolute;
+    right:44px;
+    top:36px;
+    transform:rotate(-4deg);
+  }
+
+  nav.tabs{
+    display:flex;
+    padding:0 56px;
+    background:var(--paper-dark);
+    border-bottom:1px solid var(--brass);
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  nav.tabs button{
+    border:none;
+    background:transparent;
+    font-family:'Be Vietnam Pro', sans-serif;
+    font-weight:600;
+    font-size:.9rem;
+    color:var(--ink-soft);
+    padding:12px 16px;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    white-space:nowrap;
+    min-height:44px;
+    flex-shrink:0;
+  }
+  nav.tabs button.active{
+    color:var(--ink);
+    border-bottom-color:var(--red);
+    background:var(--paper);
+  }
+
+  main{ padding:34px 56px 50px; }
+  section.panel{ display:none; }
+  section.panel.active{ display:block; }
+
+  .editor-wrap{
+    position:relative;
+    background: var(--card);
+    border:1px solid var(--rule);
+    border-radius:4px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.4), 0 2px 6px var(--shadow);
+    background-image: repeating-linear-gradient(180deg, transparent 0 34px, var(--rule) 34px 35px);
+    background-position: 0 58px;
+  }
+  #editor{
+    width:100%;
+    min-height:220px;
+    border:none;
+    background:transparent;
+    font-family:'Be Vietnam Pro', sans-serif;
+    font-size:1.05rem;
+    line-height:35px;
+    padding:24px 24px 10px;
+    color:var(--ink);
+    outline:none;
+    white-space:pre-wrap;
+    word-wrap:break-word;
+  }
+  #editor:empty::before{
+    content: attr(data-placeholder);
+    color: var(--ink-soft);
+    opacity:.65;
+    pointer-events:none;
+  }
+  .toolbar{
+    display:flex; flex-wrap:wrap; align-items:center;
+    margin:16px -5px -10px 0;
+  }
+  .toolbar > *{ margin:0 5px 10px 0; }
+  button.btn{
+    font-family:'Be Vietnam Pro', sans-serif;
+    font-weight:600;
+    font-size:.92rem;
+    border:none;
+    padding:12px 20px;
+    min-height:44px;
+    border-radius:3px;
+    cursor:pointer;
+    background:var(--ink);
+    color:var(--paper);
+    transition:transform .1s ease;
+  }
+  button.btn:hover{ transform:translateY(-1px); }
+  button.btn.secondary{ background:transparent; color:var(--ink); border:1.5px solid var(--ink); }
+  button.btn.red{ background:var(--red); color:#fff; }
+  button.btn:disabled{ opacity:.45; cursor:not-allowed; transform:none; }
+  .stat{
+    font-size:.9rem;
+    color:var(--ink-soft);
+    margin-left:auto;
+  }
+  .stat b{ color:var(--red); font-size:1.1rem; }
+
+  .flag{
+    text-decoration: underline wavy var(--red);
+    text-decoration-thickness:2px;
+    text-underline-offset:5px;
+    cursor:pointer;
+    position:relative;
+    font-weight:600;
+    color:var(--red-soft);
+    padding:2px 1px;
+    margin:-2px -1px;
+    border-radius:3px;
+    -webkit-tap-highlight-color: rgba(178,59,59,.18);
+  }
+  .flag:hover, .flag:active{ background:rgba(178,59,59,.12); }
+
+  .popover{
+    position:absolute;
+    z-index:30;
+    background:var(--popover-bg);
+    border:1px solid var(--brass);
+    border-radius:6px;
+    box-shadow:0 10px 26px rgba(0,0,0,.25);
+    padding:14px 16px;
+    max-width:280px;
+    font-size:.9rem;
+    line-height:1.45;
+  }
+  .popover .correct{
+    font-family:'Playfair Display',serif;
+    font-size:1.15rem;
+    color:#1d6b3f;
+    margin-bottom:4px;
+  }
+  .popover .note{ color:var(--ink-soft); margin-bottom:10px;}
+  .popover button{
+    font-size:.8rem;
+    padding:6px 10px;
+    border-radius:3px;
+    border:none;
+    background:var(--ink);
+    color:#fff;
+    cursor:pointer;
+    margin-right:6px;
+  }
+  .popover .close{ position:absolute; top:6px; right:8px; background:none; color:var(--ink-soft); font-size:1rem; padding:2px 6px;}
+
+  .empty-note{ color:var(--ink-soft); font-style:italic; }
+
+  .dict-controls{ display:flex; flex-wrap:wrap; margin:0 -6px 14px 0; }
+  .dict-controls > .chip{ margin:0 6px 8px 0; }
+  .chip{
+    border:1px solid var(--brass);
+    background:var(--card);
+    padding:9px 14px;
+    min-height:40px;
+    border-radius:20px;
+    font-size:.85rem;
+    font-weight:600;
+    cursor:pointer;
+    color:var(--ink-soft);
+  }
+  .chip.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .dict-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:12px;
+  }
+  .dict-card{
+    background:var(--card);
+    border:1px solid var(--rule);
+    border-radius:6px;
+    padding:14px 16px;
+  }
+  .dict-card .pair{ display:flex; align-items:baseline; flex-wrap:wrap; margin:0 0 -4px -0px; }
+  .dict-card .pair > *{ margin:0 8px 4px 0; }
+  .dict-card .ok{ color:#1d6b3f; font-weight:700; font-family:'Playfair Display',serif; font-size:1.15rem;}
+  .dict-card .no{ color:var(--red); text-decoration:line-through; opacity:.75; font-size:.95rem;}
+  .dict-card .note{ font-size:.85rem; color:var(--ink-soft); margin-top:6px; }
+  .cat-tag{
+    display:inline-block; font-size:.7rem; font-weight:700; letter-spacing:.4px;
+    color:var(--brass); text-transform:uppercase; margin-bottom:6px;
+  }
+
+  .flashcard{
+    max-width:520px; margin:0 auto;
+    background:var(--card);
+    border:1px solid var(--rule);
+    border-radius:10px;
+    padding:36px 32px;
+    text-align:center;
+    box-shadow:0 8px 22px var(--shadow);
+  }
+  .flashcard .prompt{
+    font-family:'Playfair Display', serif;
+    font-size:1.5rem;
+    margin-bottom:26px;
+  }
+  .flashcard .blank{
+    color:var(--red);
+    border-bottom:2px dashed var(--red);
+    padding:0 4px;
+  }
+  .choices{ display:flex; justify-content:center; flex-wrap:wrap; margin:0 -7px -14px; }
+  .choices > .choice-btn{ margin:0 7px 14px; }
+  .choice-btn{
+    font-size:1.05rem;
+    padding:12px 26px;
+    min-height:46px;
+    border-radius:6px;
+    border:2px solid var(--ink);
+    background:transparent;
+    cursor:pointer;
+    font-weight:600;
+  }
+  .choice-btn.correct{ background:#1d6b3f; color:#fff; border-color:#1d6b3f;}
+  .choice-btn.wrong{ background:var(--red); color:#fff; border-color:var(--red);}
+  .feedback{ margin-top:20px; min-height:26px; font-weight:600; }
+  .practice-stats{ text-align:center; margin-top:18px; color:var(--ink-soft); font-size:.9rem;}
+  .practice-actions{ text-align:center; margin-top:22px; }
+
+  /* ---- Word-select game ---- */
+  .sg-intro{ color:var(--ink-soft); font-size:.9rem; margin:0 0 18px; line-height:1.55; }
+  .sg-toolbar{ display:flex; flex-wrap:wrap; align-items:center; margin:0 -5px 8px 0; }
+  .sg-toolbar > *{ margin:0 5px 10px 0; }
+  .sg-legend{ display:flex; flex-wrap:wrap; font-size:.82rem; color:var(--ink-soft); margin:16px -7px -8px 0; }
+  .sg-legend > span{ display:inline-flex; align-items:center; margin:0 7px 8px 0; }
+  .sg-dot{ width:11px; height:11px; border-radius:50%; display:inline-block; margin-right:6px; flex-shrink:0; }
+  .word-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:10px;
+    margin-bottom:8px;
+  }
+  .word-chip{
+    font-family:'Be Vietnam Pro', sans-serif;
+    font-size:1rem;
+    font-weight:600;
+    text-align:center;
+    padding:14px 10px;
+    min-height:48px;
+    border-radius:8px;
+    border:2px solid var(--rule);
+    background:var(--card);
+    color:var(--ink);
+    cursor:pointer;
+    user-select:none;
+    -webkit-user-select:none;
+    transition:transform .08s ease, box-shadow .08s ease;
+  }
+  .word-chip:hover{ transform:translateY(-1px); box-shadow:0 3px 8px var(--shadow); }
+  .word-chip.picked{
+    border-color:var(--ink);
+    background:var(--ink);
+    color:var(--paper);
+  }
+  .word-chip[disabled]{ cursor:default; }
+  .word-chip[disabled]:hover{ transform:none; box-shadow:none; }
+  .word-chip.res-hit{ background:var(--green); border-color:var(--green); color:#fff; }
+  .word-chip.res-missed{ background:transparent; border:2px dashed var(--green); color:var(--green); }
+  .word-chip.res-wrongpick{ background:var(--red); border-color:var(--red); color:#fff; }
+  .word-chip.res-avoided{ background:transparent; border-color:var(--rule); color:var(--ink-soft); opacity:.7; }
+  .word-chip .sg-fix{ display:block; font-size:.72rem; font-weight:500; margin-top:3px; opacity:.9; }
+  .sg-score{
+    text-align:center; margin:18px 0 6px;
+    font-family:'Playfair Display', serif; font-size:1.15rem; color:var(--ink);
+    line-height:1.5;
+  }
+  .sg-score b{ color:var(--red); }
+  .sg-actions{ text-align:center; margin-top:16px; }
+
+  footer{
+    text-align:center; padding:18px; color:rgba(255,255,255,.55); font-size:.82rem;
+  }
+
+  @media (max-width:640px){
+    body{ padding:0; }
+    .book{ border-radius:0; min-height:100vh; }
+    header, main, nav.tabs{ padding-left:18px; padding-right:18px; }
+    header{ padding-top:22px; padding-bottom:16px; }
+    header h1{ font-size:1.6rem; }
+    header .tagline{ display:none; }
+    nav.tabs button{ padding:12px 12px; font-size:.85rem; }
+    main{ padding-top:20px; padding-bottom:36px; }
+    #editor{
+      font-size:16px;
+      line-height:30px;
+      min-height:170px;
+      padding:18px 16px 8px;
+    }
+    .editor-wrap{ background-position: 0 46px; background-image: repeating-linear-gradient(180deg, transparent 0 29px, var(--rule) 29px 30px); }
+    .toolbar{ gap:8px; }
+    .toolbar button.btn{
+      flex:1 1 auto;
+      min-height:46px;
+      padding:12px 14px;
+      font-size:1rem;
+    }
+    .stat{ width:100%; margin-left:0; order:3; text-align:left; }
+    .popover{ max-width: calc(100vw - 32px); font-size:.95rem; }
+    .popover button.apply-one{ min-height:40px; padding:9px 14px; }
+    .dict-grid{ grid-template-columns:1fr; }
+    .flashcard{ padding:26px 20px; }
+    .choice-btn{ width:100%; min-height:48px; }
+    .choices{ flex-direction:column; }
+    .practice-actions .btn{ width:100%; min-height:46px; }
+    .word-grid{ grid-template-columns:repeat(2,1fr); }
+    .sg-toolbar .btn{ flex:1 1 auto; min-height:46px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="book">
+  <header>
+    <h1>Sổ Tay Chính Tả</h1>
+    <p class="sub">Kiểm tra nhanh các lỗi thường gặp: l/n · ch/tr · s/x · d/gi/r — dựa trên một từ điển các cặp từ dễ nhầm chính tả, chạy hoàn toàn trong trình duyệt, không cần máy chủ hay CSDL.</p>
+    <div class="tagline">"viết đúng, nhớ mãi"</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-panel="checker">✎ Kiểm tra chính tả</button>
+    <button class="tab-btn" data-panel="dictionary">📖 Từ điển lỗi thường gặp</button>
+    <button class="tab-btn" data-panel="practice">🎯 Luyện nhanh</button>
+    <button class="tab-btn" data-panel="selectgame">🔀 Chọn từ đúng</button>
+  </nav>
+
+  <main>
+    <!-- CHECKER -->
+    <section class="panel active" id="panel-checker">
+      <div class="editor-wrap">
+        <div id="editor" contenteditable="true" data-placeholder="Gõ hoặc dán văn bản vào đây… lỗi sẽ tự hiện ra khi bạn gõ."></div>
+      </div>
+      <div class="toolbar">
+        <button class="btn red" id="fixAllBtn" style="display:none;">Sửa tất cả</button>
+        <button class="btn secondary" id="clearBtn">Xoá</button>
+        <span class="stat" id="statLine"></span>
+      </div>
+      <p style="margin-top:22px;color:var(--ink-soft);font-size:.88rem;">
+        💡 Cứ gõ bình thường — chỗ nghi sai sẽ tự gạch đỏ ngay khi bạn ngừng gõ một chút. Nhấp vào từ đỏ để xem cách viết đúng và mẹo ghi nhớ.
+        Công cụ chỉ đối chiếu với một từ điển các từ/cụm từ <b id="dictCountLabel">thực sự hay bị viết sai</b> trong tiếng Việt (l/n, ch/tr, s/x, d/gi/r và một số cặp dễ nhầm nghĩa khác) — nên sẽ không báo nhầm những từ ít gặp nhưng vốn viết đúng.
+      </p>
+    </section>
+
+    <!-- DICTIONARY -->
+    <section class="panel" id="panel-dictionary">
+      <div class="dict-controls" id="dictFilters"></div>
+      <div class="dict-grid" id="dictGrid"></div>
+    </section>
+
+    <!-- PRACTICE -->
+    <section class="panel" id="panel-practice">
+      <div class="flashcard">
+        <div class="prompt" id="cardPrompt">…</div>
+        <div class="choices" id="cardChoices"></div>
+        <div class="feedback" id="cardFeedback"></div>
+      </div>
+      <div class="practice-stats" id="practiceStats">Đúng 0 / Đã làm 0</div>
+      <div class="practice-actions">
+        <button class="btn secondary" id="skipBtn">Câu tiếp theo →</button>
+      </div>
+    </section>
+
+    <!-- SELECT GAME -->
+    <section class="panel" id="panel-selectgame">
+      <p class="sg-intro">Dưới đây là 20 từ, trộn lẫn cả từ viết <b>đúng</b> và viết <b>sai</b> chính tả. Hãy chạm chọn tất cả những từ mà bạn cho là viết <b>đúng</b>, rồi bấm "Nộp bài" để xem kết quả.</p>
+      <div class="sg-toolbar">
+        <button class="btn red" id="sgSubmitBtn">Nộp bài</button>
+        <button class="btn secondary" id="sgNewBtn">Ván mới</button>
+        <span class="stat" id="sgPickedCount"></span>
+      </div>
+      <div class="word-grid" id="sgGrid"></div>
+      <div class="sg-legend" id="sgLegend" style="display:none;">
+        <span><i class="sg-dot" style="background:var(--green);"></i>Đúng — bạn đã chọn</span>
+        <span><i class="sg-dot" style="background:transparent;border:2px dashed var(--green);"></i>Đúng — bạn bỏ lỡ</span>
+        <span><i class="sg-dot" style="background:var(--red);"></i>Sai — bạn chọn nhầm</span>
+        <span><i class="sg-dot" style="background:transparent;border:1px solid var(--rule);"></i>Sai — bạn đã tránh đúng</span>
+      </div>
+      <div class="sg-score" id="sgScore"></div>
+      <div class="sg-actions" id="sgActions" style="display:none;">
+        <button class="btn secondary" id="sgAgainBtn">Chơi ván khác →</button>
+      </div>
+    </section>
+  </main>
+</div>
+<footer>Chạy 100% trên trình duyệt của bạn — không lưu, không gửi dữ liệu đi đâu cả.</footer>
+
+<script>
+/* =========================================================
+   DICTIONARY OF COMMON VIETNAMESE SPELLING CONFUSIONS
+   entry: { correct, wrong, type, note }
+   type ∈ s-x, r-d-gi, ch-tr, n-l, other
+   Chỉ chứa các từ/cụm từ THỰC SỰ hay bị viết sai trong thực tế —
+   không dùng cách "đổi phụ âm rồi tra từ điển âm tiết" vì cách đó
+   báo nhầm rất nhiều từ hiếm nhưng vốn dĩ đúng.
+   ========================================================= */
+const DICT = [
+  // ---- s / x ----
+  {correct:"xuất sắc", wrong:"xuất xắc", type:"s-x", note:"“sắc” (bén, giỏi) viết s; “xắc” không mang nghĩa này."},
+  {correct:"súc tích", wrong:"xúc tích", type:"s-x", note:"“súc” = gom lại (súc tích = cô đọng); “xúc” là chạm/động (xúc động)."},
+  {correct:"sơ suất", wrong:"xơ suất", type:"s-x", note:"“sơ” = qua loa, ban đầu — luôn viết s trong “sơ sài, sơ suất”."},
+  {correct:"xuất hiện", wrong:"suất hiện", type:"s-x", note:"“xuất” = ra, hiện ra → xuất hiện, xuất bản, xuất khẩu."},
+  {correct:"xuất bản", wrong:"suất bản", type:"s-x", note:"“xuất” = làm ra, phát hành — viết x."},
+  {correct:"suất ăn", wrong:"xuất ăn", type:"s-x", note:"“suất” = phần chia (một suất cơm); khác với “xuất” (ra)."},
+  {correct:"sản xuất", wrong:"sản suất", type:"s-x", note:"“xuất” trong sản xuất nghĩa là làm ra — viết x."},
+  {correct:"cư xử", wrong:"cư sử", type:"s-x", note:"“xử” = xử lý, đối xử, xử sự — đều viết x."},
+  {correct:"xử lý", wrong:"sử lý", type:"s-x", note:"Giống trên: xử = giải quyết, xử lý viết x."},
+  {correct:"xử sự", wrong:"sử sự", type:"s-x", note:"“xử sự” cùng nhóm với xử lý, cư xử."},
+  {correct:"xử phạt", wrong:"sử phạt", type:"s-x", note:"“xử” = xử lý, trừng phạt — cùng nhóm với xử lý, cư xử."},
+  {correct:"xét xử", wrong:"xét sử", type:"s-x", note:"“xử” = phân xử, phán quyết — viết x."},
+  {correct:"xét nghiệm", wrong:"sét nghiệm", type:"s-x", note:"“xét” = xem xét, kiểm tra kỹ — viết x."},
+  {correct:"xem xét", wrong:"xem sét", type:"s-x", note:"“xét” = cân nhắc, soi kỹ — viết x."},
+  {correct:"cứu xét", wrong:"cứu sét", type:"s-x", note:"“xét” = xem xét lại — viết x."},
+  {correct:"sử dụng", wrong:"xử dụng", type:"s-x", note:"“sử” trong sử dụng, lịch sử — viết s."},
+  {correct:"sử sách", wrong:"xử sách", type:"s-x", note:"“sử” = lịch sử, sách sử — viết s, khác “xử” (giải quyết)."},
+  {correct:"chia sẻ", wrong:"chia xẻ", type:"s-x", note:"Sẻ = san sẻ tình cảm; “xẻ” là cắt/chẻ (xẻ gỗ) — khác nghĩa."},
+  {correct:"cọ xát", wrong:"cọ sát", type:"s-x", note:"“xát” = chà, ép sát vào — viết x, như trong “xát muối”."},
+  {correct:"sát cánh", wrong:"xát cánh", type:"s-x", note:"“sát” = kề bên, gần nhau — viết s."},
+  {correct:"sát hại", wrong:"xát hại", type:"s-x", note:"“sát” = giết — viết s."},
+  {correct:"sát nhân", wrong:"xát nhân", type:"s-x", note:"“sát” = giết (sát hại, sát nhân) — viết s."},
+  {correct:"sáng suốt", wrong:"xáng suốt", type:"s-x", note:"“sáng” = rõ ràng, minh mẫn — viết s."},
+  {correct:"sáng tác", wrong:"xáng tác", type:"s-x", note:"“sáng” = tạo ra cái mới — viết s."},
+  {correct:"xán lạn", wrong:"sáng lạn", type:"s-x", note:"Từ Hán Việt “xán lạn” (rực rỡ), không phải “sáng lạn”."},
+  {correct:"sinh sôi", wrong:"sinh xôi", type:"s-x", note:"“sôi” ở đây nghĩa là nảy nở, không liên quan “xôi” (món ăn)."},
+  {correct:"soi xét", wrong:"soi sét", type:"s-x", note:"“xét” = xem xét, xét duyệt — luôn viết x."},
+  {correct:"sáp nhập", wrong:"sát nhập", type:"s-x", note:"“sáp” = gắn dính vào nhau; “sát” nghĩa là gần/giết — dùng sai nghĩa."},
+  {correct:"suy sụp", wrong:"suy xụp", type:"s-x", note:"“sụp” = đổ xuống — viết s như “sụp đổ”."},
+  {correct:"xuất xứ", wrong:"suất xứ", type:"s-x", note:"“xuất xứ” = nguồn gốc, cả hai tiếng đều viết x."},
+  {correct:"xác nhận", wrong:"sác nhận", type:"s-x", note:"“xác” = đúng, thật (xác nhận, xác định) — viết x."},
+  {correct:"xác định", wrong:"sác định", type:"s-x", note:"“xác” = rõ ràng, chắc chắn — viết x."},
+  {correct:"xác suất", wrong:"sác suất", type:"s-x", note:"“xác suất” là thuật ngữ toán học, viết x."},
+  {correct:"chuẩn xác", wrong:"chính xát", type:"s-x", note:"“xác” = đúng, chuẩn — không có dấu nặng thành “xát”."},
+  {correct:"sắc sảo", wrong:"xắc xảo", type:"s-x", note:"“sắc” = bén, tinh tường (sắc sảo, sắc bén) — viết s."},
+  {correct:"so sánh", wrong:"so xánh", type:"s-x", note:"“sánh” = so bì, đối chiếu — viết s."},
+  {correct:"xa xỉ", wrong:"sa xỉ", type:"s-x", note:"“xa xỉ” cả hai tiếng đều viết x."},
+  {correct:"xa xôi", wrong:"sa xôi", type:"s-x", note:"“xa xôi” cả hai tiếng đều viết x."},
+  {correct:"sa sút", wrong:"xa xút", type:"s-x", note:"“sa sút” = giảm sút — cả hai tiếng viết s."},
+  {correct:"sa thải", wrong:"xa thải", type:"s-x", note:"“sa thải” = cho thôi việc — viết s."},
+  {correct:"sức khỏe", wrong:"xức khỏe", type:"s-x", note:"“sức” = năng lượng, thể lực — viết s."},
+  {correct:"xúc động", wrong:"súc động", type:"s-x", note:"“xúc” = chạm đến cảm xúc — viết x, khác “súc” (súc tích, gia súc)."},
+
+  // ---- r / d / gi ----
+  {correct:"giành giật", wrong:"dành giật", type:"r-d-gi", note:"“giành” = tranh lấy; “dành” = để dành, tiết kiệm — khác nghĩa."},
+  {correct:"dành dụm", wrong:"giành dụm", type:"r-d-gi", note:"“dành” = cất giữ cho sau này — viết d."},
+  {correct:"giành chiến thắng", wrong:"dành chiến thắng", type:"r-d-gi", note:"“giành” = tranh đoạt được — viết gi."},
+  {correct:"giấu giếm", wrong:"dấu diếm", type:"r-d-gi", note:"“giấu” = che giấu (động từ); “dấu” là danh từ (dấu vết, dấu chấm)."},
+  {correct:"dấu vết", wrong:"giấu vết", type:"r-d-gi", note:"“dấu” (danh từ: vết tích, ký hiệu) viết d, khác “giấu” (che đi)."},
+  {correct:"reo hò", wrong:"gieo hò", type:"r-d-gi", note:"“reo” = hô vang (reo hò, reo mừng); “gieo” là rắc/thả xuống (gieo hạt)."},
+  {correct:"reo mừng", wrong:"gieo mừng", type:"r-d-gi", note:"“reo” = hô lên vui mừng — viết r."},
+  {correct:"gieo rắc", wrong:"reo rắc", type:"r-d-gi", note:"“gieo” = rải ra (gieo hạt, gieo rắc); không phải “reo” (hô vang)."},
+  {correct:"dông dài", wrong:"rông dài", type:"r-d-gi", note:"“dông dài” = nói lan man, viết d."},
+  {correct:"ròng rã", wrong:"dòng dã", type:"r-d-gi", note:"“ròng rã” = liên tục suốt một thời gian dài — viết r."},
+  {correct:"giòn giã", wrong:"ròn rã", type:"r-d-gi", note:"“giòn giã” tả tiếng cười/vỗ tay rộn ràng — viết gi."},
+  {correct:"rả rích", wrong:"dả dích", type:"r-d-gi", note:"“rả rích” tả mưa/tiếng động đều đều — viết r."},
+  {correct:"dai dẳng", wrong:"rai rẳng", type:"r-d-gi", note:"“dai dẳng” = kéo dài không dứt — viết d."},
+  {correct:"giả dối", wrong:"giả rối", type:"r-d-gi", note:"“dối” = không thật (nói dối, giả dối) — viết d."},
+  {correct:"giả vờ", wrong:"dả vờ", type:"r-d-gi", note:"“giả” = không thật, đóng vai — viết gi."},
+  {correct:"rốt cuộc", wrong:"dốt cuộc", type:"r-d-gi", note:"“rốt cuộc” = cuối cùng — viết r."},
+  {correct:"giục giã", wrong:"dục giã", type:"r-d-gi", note:"“giục” = thúc giục — viết gi, khác “dục” (ham muốn)."},
+  {correct:"rụt rè", wrong:"dụt dè", type:"r-d-gi", note:"“rụt rè” = e dè, nhút nhát — viết r."},
+  {correct:"dè dặt", wrong:"rè rặt", type:"r-d-gi", note:"“dè dặt” = thận trọng, giữ ý — viết d."},
+  {correct:"dặn dò", wrong:"rặn rò", type:"r-d-gi", note:"“dặn dò” = nhắc nhở kỹ — viết d."},
+  {correct:"dạy dỗ", wrong:"rạy rỗ", type:"r-d-gi", note:"“dạy dỗ” = giáo dục, chỉ bảo — viết d."},
+  {correct:"rạng rỡ", wrong:"dạng rỡ", type:"r-d-gi", note:"“rạng” = sáng rực, tươi sáng — viết r."},
+  {correct:"rực rỡ", wrong:"dực rỡ", type:"r-d-gi", note:"“rực rỡ” tả màu sắc/ánh sáng nổi bật — viết r."},
+  {correct:"rình rập", wrong:"dình rập", type:"r-d-gi", note:"“rình” = theo dõi lén lút — viết r."},
+  {correct:"dọa dẫm", wrong:"rọa rẫm", type:"r-d-gi", note:"“dọa” = hù dọa, đe nẹt — viết d."},
+  {correct:"giễu cợt", wrong:"diễu cợt", type:"r-d-gi", note:"“giễu” = chế nhạo, trêu chọc — viết gi, khác “diễu binh” (viết d)."},
+  {correct:"diễu hành", wrong:"giễu hành", type:"r-d-gi", note:"“diễu” = đi thành đoàn, trình diễn — viết d."},
+  {correct:"da diết", wrong:"gia diết", type:"r-d-gi", note:"“da diết” = tha thiết, sâu lắng — viết d."},
+  {correct:"giữ gìn", wrong:"dữ gìn", type:"r-d-gi", note:"“giữ” = bảo vệ, gìn giữ — viết gi, không phải “dữ” (hung dữ)."},
+  {correct:"giải quyết", wrong:"dải quyết", type:"r-d-gi", note:"“giải” = tháo gỡ, xử lý — viết gi, không phải “dải” (dải đất, dải lụa)."},
+  {correct:"giải thích", wrong:"dải thích", type:"r-d-gi", note:"“giải” = làm rõ ra — viết gi, không phải “dải”."},
+  {correct:"giao thông", wrong:"dao thông", type:"r-d-gi", note:"“giao” = đi lại, trao đổi — viết gi, không phải “dao” (con dao)."},
+  {correct:"giữ lại", wrong:"dữ lại", type:"r-d-gi", note:"“giữ” = nắm giữ, không buông — viết gi."},
+  {correct:"dữ liệu", wrong:"giữ liệu", type:"r-d-gi", note:"“dữ” trong dữ liệu là từ Hán Việt riêng, không phải “giữ” (nắm giữ)."},
+  {correct:"giữ trật tự", wrong:"dữ trật tự", type:"r-d-gi", note:"“giữ” = duy trì, bảo đảm — viết gi."},
+  {correct:"giùm", wrong:"dùm", type:"r-d-gi", note:"“giùm” (giúp hộ) viết gi, không phải “dùm”."},
+
+  // ---- ch / tr ----
+  {correct:"chẩn đoán", wrong:"chuẩn đoán", type:"ch-tr", note:"“chẩn” = khám xét bệnh (chẩn đoán, chẩn trị); không phải “chuẩn” (tiêu chuẩn)."},
+  {correct:"tựu trung", wrong:"tựu chung", type:"ch-tr", note:"“trung” = ở giữa, tóm lại — “tựu trung” nghĩa là suy cho cùng."},
+  {correct:"vô hình trung", wrong:"vô hình chung", type:"ch-tr", note:"“trung” = ở giữa, ngẫu nhiên mà thành — không phải “chung” (cùng nhau)."},
+  {correct:"trau chuốt", wrong:"trau truốt", type:"ch-tr", note:"“chuốt” = gọt giũa cho đẹp — viết ch."},
+  {correct:"chín muồi", wrong:"chín mùi", type:"ch-tr", note:"“muồi” = đã đến độ chín — không phải “mùi” (hương)."},
+  {correct:"chín chắn", wrong:"chính chắn", type:"ch-tr", note:"“chín chắn” = thận trọng, từng trải — không phải “chính” (đúng)."},
+  {correct:"truyền thống", wrong:"chuyền thống", type:"ch-tr", note:"“truyền” = trao lại qua các đời — viết tr."},
+  {correct:"trùng hợp", wrong:"chùng hợp", type:"ch-tr", note:"“trùng” = giống nhau, lặp lại — viết tr."},
+  {correct:"chia chác", wrong:"chia trác", type:"ch-tr", note:"“chác” đi cùng “chia” diễn tả phân chia lợi ích — viết ch."},
+  {correct:"trải nghiệm", wrong:"chải nghiệm", type:"ch-tr", note:"“trải” = đã qua, đã kinh qua — viết tr."},
+  {correct:"trân trọng", wrong:"chân trọng", type:"ch-tr", note:"“trân” = quý (trân trọng, trân quý) — viết tr, không phải “chân”."},
+  {correct:"trân quý", wrong:"chân quý", type:"ch-tr", note:"“trân” = quý giá — cùng nhóm với trân trọng."},
+  {correct:"triển khai", wrong:"chiển khai", type:"ch-tr", note:"“triển” = mở rộng, phát triển — viết tr."},
+  {correct:"chăm chút", wrong:"trăm chút", type:"ch-tr", note:"“chăm” = để tâm, cẩn thận — viết ch."},
+  {correct:"chăm nom", wrong:"trăm nom", type:"ch-tr", note:"“chăm” = để tâm chăm sóc — viết ch."},
+  {correct:"chăm sóc", wrong:"trăm sóc", type:"ch-tr", note:"“chăm” = để tâm chu đáo — viết ch, không phải “trăm” (100)."},
+  {correct:"chăm học", wrong:"trăm học", type:"ch-tr", note:"“chăm” = siêng năng — viết ch, không phải “trăm” (100)."},
+  {correct:"chăm chỉ", wrong:"trăm chỉ", type:"ch-tr", note:"“chăm” = siêng năng — viết ch, khác “trăm” (số 100)."},
+  {correct:"tranh chấp", wrong:"chanh chấp", type:"ch-tr", note:"“tranh” = giành nhau — viết tr, khác “chanh” (quả)."},
+  {correct:"trao đổi", wrong:"chao đổi", type:"ch-tr", note:"“trao” = đưa cho — viết tr."},
+  {correct:"trao tặng", wrong:"chao tặng", type:"ch-tr", note:"“trao” = đưa cho — viết tr."},
+  {correct:"chỉn chu", wrong:"chỉnh chu", type:"ch-tr", note:"Từ đúng là “chỉn chu” — không có “nh”; nghĩa là tề chỉnh, cẩn thận."},
+  {correct:"mất trí", wrong:"mất chí", type:"ch-tr", note:"“trí” = đầu óc, tâm trí (mất trí, trí nhớ); “chí” là ý chí, chí hướng — khác nghĩa."},
+  {correct:"trí nhớ", wrong:"chí nhớ", type:"ch-tr", note:"“trí” = thuộc về đầu óc (trí nhớ, trí tuệ) — viết tr."},
+  {correct:"trí tuệ", wrong:"chí tuệ", type:"ch-tr", note:"“trí tuệ” = khả năng suy nghĩ, nhận thức — viết tr."},
+  {correct:"trí óc", wrong:"chí óc", type:"ch-tr", note:"“trí óc” = bộ não, khả năng tư duy — viết tr."},
+  {correct:"lý trí", wrong:"lý chí", type:"ch-tr", note:"“lý trí” = khả năng suy xét bằng đầu óc; đừng lẫn với “ý chí” (nghị lực)."},
+  {correct:"trí thức", wrong:"chí thức", type:"ch-tr", note:"“trí thức” = người có học vấn, hiểu biết — viết tr."},
+  {correct:"tri thức", wrong:"chi thức", type:"ch-tr", note:"“tri thức” = kiến thức, hiểu biết nói chung — viết tr (không dấu)."},
+  {correct:"chính xác", wrong:"trính xác", type:"ch-tr", note:"“chính” = đúng, thật — viết ch."},
+  {correct:"trọng trách", wrong:"chọng trách", type:"ch-tr", note:"“trọng” = nặng, quan trọng — viết tr."},
+  {correct:"trưởng thành", wrong:"chưởng thành", type:"ch-tr", note:"“trưởng” = lớn lên, đứng đầu — viết tr."},
+  {correct:"trầm trồ", wrong:"chầm chồ", type:"ch-tr", note:"“trầm trồ” = xuýt xoa khen ngợi — viết tr."},
+  {correct:"trù tính", wrong:"chù tính", type:"ch-tr", note:"“trù” = tính toán trước, lo liệu — viết tr."},
+  {correct:"chuẩn bị", wrong:"truẩn bị", type:"ch-tr", note:"“chuẩn” = mực thước, tiêu chuẩn (chuẩn bị) — viết ch."},
+  {correct:"trích dẫn", wrong:"chích dẫn", type:"ch-tr", note:"“trích” = lấy ra một phần — viết tr."},
+  {correct:"chuyển giao", wrong:"truyển giao", type:"ch-tr", note:"“chuyển” = dời đi, đưa sang — viết ch."},
+  {correct:"chân chính", wrong:"trân chính", type:"ch-tr", note:"“chân” = thật, đúng đắn — viết ch."},
+  {correct:"trung thực", wrong:"chung thực", type:"ch-tr", note:"“trung” = ngay thẳng (trung thực, trung thành) — viết tr."},
+  {correct:"chung thủy", wrong:"trung thủy", type:"ch-tr", note:"“chung” = cùng nhau đến cuối (chung thủy) — viết ch, khác “trung thành” (viết tr)."},
+  {correct:"kiểm tra", wrong:"kiểm cha", type:"ch-tr", note:"“tra” = xem xét, kiểm tra — không phải “cha” (bố)."},
+  {correct:"chở người", wrong:"trở người", type:"ch-tr", note:"“chở” = vận chuyển; “trở” chỉ đi với về/lại/nên/thành/mình, không ghép với “người”."},
+  {correct:"chương trình", wrong:"trương trình", type:"ch-tr", note:"“chương” = phần, mục — viết ch, không phải “trương” (phô trương, giăng ra)."},
+  {correct:"trả lời", wrong:"chả lời", type:"ch-tr", note:"“trả” = đáp lại — viết tr, không phải “chả” (món ăn / từ phủ định khẩu ngữ)."},
+  {correct:"chân thành", wrong:"trân thành", type:"ch-tr", note:"“chân” = thật lòng — viết ch; đừng lẫn với “trân trọng” (viết tr)."},
+  {correct:"trò chuyện", wrong:"chò chuyện", type:"ch-tr", note:"“trò” trong trò chuyện, trò chơi — viết tr."},
+  {correct:"chuyện trò", wrong:"truyện trò", type:"ch-tr", note:"“chuyện” = câu chuyện, lời nói — viết ch, khác “truyện” (tác phẩm văn học, sách)."},
+  {correct:"kết cục", wrong:"kết cuộc", type:"ch-tr", note:"“kết cục” = phần cuối cùng của sự việc — không phải “kết cuộc”."},
+
+  // ---- n / l ----
+  {correct:"long lanh", wrong:"nong nanh", type:"n-l", note:"“long lanh” tả ánh sáng lấp lánh — cả hai tiếng đều viết l."},
+  {correct:"lo lắng", wrong:"no lắng", type:"n-l", note:"“lo” = bận tâm, âu lo — viết l, khác “no” (đã ăn đủ)."},
+  {correct:"nói dối", wrong:"lói dối", type:"n-l", note:"“nói” = phát ngôn — viết n."},
+  {correct:"lạc quan", wrong:"nạc quan", type:"n-l", note:"“lạc” = vui (lạc quan, an lạc) — viết l."},
+  {correct:"làm lụng", wrong:"nàm nụng", type:"n-l", note:"“làm” = lao động — viết l, đây là lỗi phát âm vùng miền hay gặp."},
+  {correct:"nôn nóng", wrong:"lôn nóng", type:"n-l", note:"“nôn” = gấp gáp, sốt ruột — viết n."},
+  {correct:"nôn nao", wrong:"lôn lao", type:"n-l", note:"“nôn nao” = xao xuyến, bồn chồn — viết n."},
+  {correct:"no nê", wrong:"lo nê", type:"n-l", note:"“no” = đã ăn đủ, no nê — viết n."},
+  {correct:"no đủ", wrong:"lo đủ", type:"n-l", note:"“no” = đủ ăn, sung túc — viết n."},
+  {correct:"lung linh", wrong:"nung ninh", type:"n-l", note:"“lung linh” tả ánh sáng — cả hai tiếng viết l."},
+  {correct:"nặng nề", wrong:"lặng lề", type:"n-l", note:"“nặng” = có trọng lượng lớn — viết n, khác “lặng” (yên tĩnh)."},
+  {correct:"lành lặn", wrong:"nành nặn", type:"n-l", note:"“lành lặn” = nguyên vẹn, không sứt mẻ — viết l."},
+  {correct:"nông nổi", wrong:"nong nổi", type:"n-l", note:"“nông nổi” = hấp tấp, thiếu chín chắn — hai tiếng đều viết n."},
+  {correct:"lo liệu", wrong:"no liệu", type:"n-l", note:"“lo liệu” = tính toán, thu xếp trước — viết l."},
+  {correct:"lóng ngóng", wrong:"nóng ngóng", type:"n-l", note:"“lóng ngóng” = vụng về, lúng túng — viết l."},
+  {correct:"nao núng", wrong:"lao lúng", type:"n-l", note:"“nao núng” = dao động tinh thần, mất tự tin — viết n."},
+  {correct:"lẫn lộn", wrong:"nẫn nộn", type:"n-l", note:"“lẫn lộn” = nhầm lẫn cái này với cái kia — viết l."},
+
+  // ---- other commonly-confused pairs (semantic, not letter-pattern) ----
+  {correct:"tham quan", wrong:"thăm quan", type:"other", note:"“tham quan” là từ Hán Việt (tham = xem, quan = nhìn); “thăm quan” không đúng dù rất phổ biến."},
+  {correct:"phong phanh", wrong:"phong thanh", type:"other", note:"“phong phanh” = mặc mỏng manh; “phong thanh” = nghe loáng thoáng — hai từ khác nghĩa hay bị lẫn."},
+  {correct:"nhậm chức", wrong:"nhận chức", type:"other", note:"“nhậm” = gánh vác trách nhiệm (nhậm chức); “nhận” là tiếp nhận — sai khi thay bằng nhận."},
+  {correct:"độc giả", wrong:"đọc giả", type:"other", note:"“độc” = đọc (Hán Việt), “giả” = người — “độc giả” = người đọc, không phải “đọc giả”."},
+  {correct:"lãng mạn", wrong:"lãng mạng", type:"other", note:"“mạn” nghĩa gốc là bờ, phóng túng — không có “g” cuối."},
+  {correct:"sát sao", wrong:"xát sao", type:"s-x", note:"“sát sao” = theo dõi kỹ lưỡng, kề cận — viết s."},
+  {correct:"xuề xoà", wrong:"suề xoà", type:"s-x", note:"“xuề xoà” = giản dị, dễ dãi — viết x."},
+  {correct:"suýt nữa", wrong:"xuýt nữa", type:"s-x", note:"“suýt” = gần như, chút nữa thì — viết s."},
+  {correct:"xì xào", wrong:"sì xào", type:"s-x", note:"“xì xào” tả tiếng nói nhỏ, bàn tán — viết x."},
+  {correct:"xoay xở", wrong:"xoay sở", type:"s-x", note:"“xoay xở” = tìm cách giải quyết — viết x, không phải “sở”."},
+  {correct:"xúm xít", wrong:"súm sít", type:"s-x", note:"“xúm xít” = tụ lại đông đúc, thân mật — viết x."},
+  {correct:"xoen xoét", wrong:"soen soét", type:"s-x", note:"“xoen xoét” tả nói liến thoắng, trơn tru — viết x."},
+  {correct:"sờ soạng", wrong:"xờ xoạng", type:"s-x", note:"“sờ soạng” = dùng tay dò dẫm — viết s."},
+  {correct:"sàng lọc", wrong:"xàng lọc", type:"s-x", note:"“sàng” = lọc, rây qua — viết s."},
+  {correct:"xoành xoạch", wrong:"soành soạch", type:"s-x", note:"“xoành xoạch” tả âm thanh/hành động liên tục — viết x."},
+  {correct:"sáng láng", wrong:"xáng láng", type:"s-x", note:"“sáng láng” = thông minh, rạng rỡ — viết s."},
+
+  {correct:"gièm pha", wrong:"rèm pha", type:"r-d-gi", note:"“gièm” = nói xấu, dèm pha sau lưng — viết gi, không phải “rèm” (rèm cửa)."},
+  {correct:"rêu rao", wrong:"dêu rao", type:"r-d-gi", note:"“rêu rao” = loan truyền tin (thường xấu) cho nhiều người biết — viết r."},
+  {correct:"rề rà", wrong:"dề dà", type:"r-d-gi", note:"“rề rà” = chậm chạp, kéo dài — viết r."},
+  {correct:"giương mắt", wrong:"dương mắt", type:"r-d-gi", note:"“giương” = mở to, căng ra — viết gi; khác “dương” (mặt trời, số dương)."},
+  {correct:"giương cờ", wrong:"dương cờ", type:"r-d-gi", note:"“giương” = giăng lên, mở rộng ra — viết gi."},
+  {correct:"rong ruổi", wrong:"dong duổi", type:"r-d-gi", note:"“rong ruổi” = đi khắp nơi không dừng — viết r."},
+  {correct:"rong chơi", wrong:"dong chơi", type:"r-d-gi", note:"“rong chơi” = đi chơi thong dong — viết r."},
+  {correct:"dông tố", wrong:"rông tố", type:"r-d-gi", note:"“dông tố” = bão to, mưa gió dữ dội — viết d."},
+  {correct:"giậm chân", wrong:"rậm chân", type:"r-d-gi", note:"“giậm” = dận mạnh chân xuống (giậm chân tại chỗ) — viết gi."},
+  {correct:"rung rinh", wrong:"dung rinh", type:"r-d-gi", note:"“rung rinh” tả sự lay động nhẹ — viết r."},
+  {correct:"rùng rợn", wrong:"dùng rợn", type:"r-d-gi", note:"“rùng rợn” = ghê sợ, khiếp đảm — viết r."},
+  {correct:"dửng dưng", wrong:"rửng dưng", type:"r-d-gi", note:"“dửng dưng” = thờ ơ, không quan tâm — viết d."},
+  {correct:"giẫy giụa", wrong:"rẫy rụa", type:"r-d-gi", note:"“giẫy giụa” = vùng vẫy cố thoát ra — viết gi."},
+  {correct:"rón rén", wrong:"dón dén", type:"r-d-gi", note:"“rón rén” = đi nhẹ nhàng, thận trọng — viết r."},
+  {correct:"giả tạo", wrong:"dả tạo", type:"r-d-gi", note:"“giả tạo” = không thật, làm ra vẻ — viết gi."},
+  {correct:"giả sử", wrong:"dả sử", type:"r-d-gi", note:"“giả sử” = ví như, cho rằng — viết gi."},
+  {correct:"reo vui", wrong:"gieo vui", type:"r-d-gi", note:"“reo” = hô lên vui mừng — viết r, khác “gieo” (rắc, thả xuống)."},
+  {correct:"dí dỏm", wrong:"rí rỏm", type:"r-d-gi", note:"“dí dỏm” = hài hước một cách tinh tế — viết d."},
+  {correct:"rạng danh", wrong:"dạng danh", type:"r-d-gi", note:"“rạng danh” = nổi tiếng, vẻ vang — viết r."},
+  {correct:"giòn tan", wrong:"ròn tan", type:"r-d-gi", note:"“giòn tan” tả độ giòn của thức ăn — viết gi."},
+
+  {correct:"truân chuyên", wrong:"chuân chuyên", type:"ch-tr", note:"“truân chuyên” = vất vả, gian nan — viết tr."},
+  {correct:"trù dập", wrong:"chù dập", type:"ch-tr", note:"“trù dập” = gây khó dễ, chèn ép — viết tr."},
+  {correct:"trì trệ", wrong:"chì trệ", type:"ch-tr", note:"“trì trệ” = chậm chạp, ngưng đọng — viết tr."},
+  {correct:"trơ trẽn", wrong:"chơ chẽn", type:"ch-tr", note:"“trơ trẽn” = không biết xấu hổ — viết tr."},
+  {correct:"tra tấn", wrong:"cha tấn", type:"ch-tr", note:"“tra tấn” = hành hạ để khai thác — viết tr."},
+  {correct:"trấn an", wrong:"chấn an", type:"ch-tr", note:"“trấn an” = làm cho yên lòng — viết tr."},
+  {correct:"chán chường", wrong:"tràn chường", type:"ch-tr", note:"“chán chường” = chán nản, mệt mỏi tinh thần — viết ch."},
+  {correct:"chững chạc", wrong:"trửng trạc", type:"ch-tr", note:"“chững chạc” = đứng đắn, chín chắn — viết ch."},
+  {correct:"chểnh mảng", wrong:"trểnh mảng", type:"ch-tr", note:"“chểnh mảng” = lơ là, không chú tâm — viết ch."},
+  {correct:"trốn tránh", wrong:"chốn chánh", type:"ch-tr", note:"“trốn tránh” = lẩn tránh trách nhiệm — viết tr."},
+  {correct:"truy cứu", wrong:"chuy cứu", type:"ch-tr", note:"“truy cứu” = xem xét, quy trách nhiệm — viết tr."},
+  {correct:"truy tố", wrong:"chuy tố", type:"ch-tr", note:"“truy tố” là thuật ngữ pháp lý — viết tr."},
+  {correct:"chăm bẵm", wrong:"trăm bẵm", type:"ch-tr", note:"“chăm bẵm” = chăm sóc kỹ lưỡng — viết ch."},
+  {correct:"chải chuốt", wrong:"trải chuốt", type:"ch-tr", note:"“chải chuốt” = chăm chút vẻ ngoài — viết ch, khác “trau chuốt” (gọt giũa lời văn, viết tr)."},
+  {correct:"chầu chực", wrong:"trầu trực", type:"ch-tr", note:"“chầu chực” = chờ đợi lâu, kiên nhẫn đợi — viết ch."},
+  {correct:"chưng cất", wrong:"trưng cất", type:"ch-tr", note:"“chưng cất” là thuật ngữ hoá học — viết ch, khác “trưng bày” (viết tr)."},
+  {correct:"trưng bày", wrong:"chưng bày", type:"ch-tr", note:"“trưng bày” = bày ra cho xem — viết tr, khác “chưng cất” (viết ch)."},
+  {correct:"trù phú", wrong:"chù phú", type:"ch-tr", note:"“trù phú” = giàu có, màu mỡ — viết tr."},
+
+  {correct:"nao lòng", wrong:"lao lòng", type:"n-l", note:"“nao lòng” = xúc động, chùn bước — viết n."},
+  {correct:"lẩn thẩn", wrong:"nẩn thẩn", type:"n-l", note:"“lẩn thẩn” = lú lẫn, hay quên — viết l."},
+  {correct:"nương náu", wrong:"lương náu", type:"n-l", note:"“nương náu” = trú ẩn, nhờ cậy — viết n."},
+  {correct:"lảng tránh", wrong:"nảng tránh", type:"n-l", note:"“lảng tránh” = tránh né, lảng đi — viết l."},
+  {correct:"nài nỉ", wrong:"lài lỉ", type:"n-l", note:"“nài nỉ” = van xin, cầu khẩn — viết n."},
+  {correct:"lỡ làng", wrong:"nỡ làng", type:"n-l", note:"“lỡ làng” = dở dang, trễ nải — viết l."},
+  {correct:"nợ nần", wrong:"lợ lần", type:"n-l", note:"“nợ nần” = mắc nợ — viết n."},
+  {correct:"lăn lộn", wrong:"năn lộn", type:"n-l", note:"“lăn lộn” = vất vả xoay xở — viết l."},
+  {correct:"lung lay", wrong:"nung nay", type:"n-l", note:"“lung lay” = không vững, dao động — viết l."},
+  {correct:"não nề", wrong:"lão nề", type:"n-l", note:"“não nề” = buồn bã, nặng nề — viết n."},
+  {correct:"lãng quên", wrong:"nãng quên", type:"n-l", note:"“lãng quên” = quên đi, không nhớ tới — viết l."},
+
+  {correct:"nhẫn nại", wrong:"nhẩn nại", type:"other", note:"“nhẫn nại” = kiên trì chịu đựng — dấu ngã, không phải dấu hỏi."},
+  {correct:"cản trở", wrong:"cảng trở", type:"other", note:"“cản trở” = ngăn cản — viết “cản”, không có “g”."},
+  {correct:"khắc khoải", wrong:"khắc khoẻ", type:"other", note:"“khắc khoải” = day dứt, lo lắng không yên — không phải “khoẻ”."},
+  {correct:"suy nghĩ", wrong:"suy nghỉ", type:"other", note:"“nghĩ” (dấu ngã) = tư duy; “nghỉ” (dấu hỏi) là ngừng làm việc — hai từ khác nghĩa."},
+  {correct:"cưỡng chế", wrong:"cượng chế", type:"other", note:"“cưỡng” = ép buộc — không có “g” trước “chế”."},
+  {correct:"bổ sung", wrong:"bổ xung", type:"s-x", note:"“sung” = thêm vào cho đủ — viết s, không phải “xung” (xung đột)."},
+
+  {correct:"soi mói", wrong:"xoi mói", type:"s-x", note:"“soi mói” = xét nét, dò xét tiểu tiết — viết s."},
+  {correct:"sinh sự", wrong:"xinh sự", type:"s-x", note:"“sinh sự” = gây chuyện, viết s."},
+  {correct:"xì xụp", wrong:"sì xụp", type:"s-x", note:"“xì xụp” tả tiếng ăn húp hoặc lạy liên tục — viết x."},
+  {correct:"sục sạo", wrong:"xục xạo", type:"s-x", note:"“sục sạo” = lùng tìm khắp nơi — viết s."},
+  {correct:"xáo trộn", wrong:"sáo trộn", type:"s-x", note:"“xáo trộn” = đảo lộn trật tự — viết x."},
+  {correct:"xa xăm", wrong:"sa xăm", type:"s-x", note:"“xa xăm” = xa xôi, mơ hồ — viết x."},
+  {correct:"xa lạ", wrong:"sa lạ", type:"s-x", note:"“xa lạ” = không quen biết — viết x."},
+  {correct:"sáng ngời", wrong:"xáng ngời", type:"s-x", note:"“sáng ngời” = rất sáng, rực rỡ — viết s."},
+  {correct:"sứt mẻ", wrong:"xứt mẻ", type:"s-x", note:"“sứt mẻ” = bị hỏng, rạn nứt — viết s."},
+  {correct:"xót xa", wrong:"sót xa", type:"s-x", note:"“xót xa” = đau lòng, thương cảm — viết x."},
+  {correct:"sót lại", wrong:"xót lại", type:"s-x", note:"“sót” = còn thừa, chưa hết — viết s, khác “xót” (đau lòng)."},
+  {correct:"bỏ sót", wrong:"bỏ xót", type:"s-x", note:"“sót” = còn thiếu, bỏ quên — viết s."},
+  {correct:"xuềnh xoàng", wrong:"suềnh soàng", type:"s-x", note:"“xuềnh xoàng” = giản dị, xuề xoà — viết x."},
+  {correct:"sổ sách", wrong:"xổ xách", type:"s-x", note:"“sổ sách” = giấy tờ ghi chép — viết s."},
+  {correct:"sổ mũi", wrong:"xổ mũi", type:"s-x", note:"“sổ mũi” (triệu chứng cảm) viết s."},
+  {correct:"xử trí", wrong:"sử trí", type:"s-x", note:"“xử trí” = giải quyết tình huống — viết x."},
+
+  {correct:"rành rẽ", wrong:"dành rẽ", type:"r-d-gi", note:"“rành rẽ” = rõ ràng, thông thạo — viết r."},
+  {correct:"rành mạch", wrong:"dành mạch", type:"r-d-gi", note:"“rành mạch” = rõ ràng, mạch lạc — viết r."},
+  {correct:"giòn rụm", wrong:"ròn rụm", type:"r-d-gi", note:"“giòn rụm” tả độ giòn của thức ăn — viết gi."},
+  {correct:"rủ rê", wrong:"dủ dê", type:"r-d-gi", note:"“rủ rê” = lôi kéo làm việc gì đó — viết r."},
+  {correct:"rủ lòng", wrong:"dủ lòng", type:"r-d-gi", note:"“rủ lòng thương” = động lòng thương xót — viết r."},
+  {correct:"dòng dõi", wrong:"ròng dõi", type:"r-d-gi", note:"“dòng dõi” = huyết thống, gia tộc — viết d."},
+  {correct:"ròng rọc", wrong:"dòng dọc", type:"r-d-gi", note:"“ròng rọc” (bánh xe kéo dây) viết r."},
+  {correct:"giữ ý", wrong:"dữ ý", type:"r-d-gi", note:"“giữ ý” = thận trọng lời nói, cử chỉ — viết gi."},
+  {correct:"giới hạn", wrong:"dới hạn", type:"r-d-gi", note:"“giới hạn” = phạm vi cho phép — viết gi."},
+  {correct:"giới thiệu", wrong:"dới thiệu", type:"r-d-gi", note:"“giới thiệu” viết gi."},
+  {correct:"rành rành", wrong:"dành dành", type:"r-d-gi", note:"“rành rành” = rõ ràng, hiển nhiên — viết r."},
+  {correct:"rung động", wrong:"dung động", type:"r-d-gi", note:"“rung động” = xúc động, lay động — viết r."},
+  {correct:"gieo neo", wrong:"reo neo", type:"r-d-gi", note:"“gieo neo” = khó khăn, vất vả — viết gi (gieo)."},
+  {correct:"rối rắm", wrong:"dối rắm", type:"r-d-gi", note:"“rối rắm” = phức tạp, lộn xộn — viết r."},
+  {correct:"rối ren", wrong:"dối ren", type:"r-d-gi", note:"“rối ren” = lộn xộn, khó gỡ — viết r."},
+  {correct:"dối trá", wrong:"rối trá", type:"r-d-gi", note:"“dối trá” = lừa dối — viết d."},
+  {correct:"dòm ngó", wrong:"ròm ngó", type:"r-d-gi", note:"“dòm ngó” = nhìn trộm, để ý — viết d."},
+  {correct:"giữ kẽ", wrong:"dữ kẽ", type:"r-d-gi", note:"“giữ kẽ” = thận trọng, ý tứ — viết gi."},
+  {correct:"rêu phong", wrong:"dêu phong", type:"r-d-gi", note:"“rêu phong” = rêu bám lâu ngày — viết r."},
+
+  {correct:"trục trặc", wrong:"chục chặc", type:"ch-tr", note:"“trục trặc” = gặp sự cố, không suôn sẻ — viết tr."},
+  {correct:"trọc lóc", wrong:"chọc lóc", type:"ch-tr", note:"“trọc lóc” = trơ trụi, hói — viết tr."},
+  {correct:"chững lại", wrong:"trững lại", type:"ch-tr", note:"“chững lại” = dừng khựng lại — viết ch."},
+  {correct:"chăm chắm", wrong:"trăm chắm", type:"ch-tr", note:"“chăm chắm” = chú ý cố định vào một điều — viết ch."},
+  {correct:"trầm lắng", wrong:"chầm lắng", type:"ch-tr", note:"“trầm lắng” = yên tĩnh, sâu lắng — viết tr."},
+  {correct:"trầm ngâm", wrong:"chầm ngâm", type:"ch-tr", note:"“trầm ngâm” = suy nghĩ sâu, ít nói — viết tr."},
+  {correct:"chán ngán", wrong:"tràn ngán", type:"ch-tr", note:"“chán ngán” = chán nản tột độ — viết ch."},
+  {correct:"chông chênh", wrong:"trông chênh", type:"ch-tr", note:"“chông chênh” = không vững, bấp bênh — viết ch."},
+  {correct:"tréo ngoe", wrong:"chéo ngoe", type:"ch-tr", note:"“tréo ngoe” = trái ngược, mâu thuẫn — viết tr."},
+  {correct:"chéo cánh", wrong:"tréo cánh", type:"ch-tr", note:"“chéo cánh” tả hình dạng bắt chéo — viết ch, khác “tréo ngoe” (viết tr)."},
+  {correct:"trù ẻo", wrong:"chù ẻo", type:"ch-tr", note:"“trù ẻo” = nguyền rủa cho gặp xui — viết tr."},
+  {correct:"truy lùng", wrong:"chuy lùng", type:"ch-tr", note:"“truy lùng” = tìm bắt ráo riết — viết tr."},
+  {correct:"trút giận", wrong:"chút giận", type:"ch-tr", note:"“trút” = xả ra, đổ ra (trút giận) — viết tr, khác “chút” (một chút)."},
+  {correct:"trốn học", wrong:"chốn học", type:"ch-tr", note:"“trốn” = lẩn tránh (trốn học, trốn tránh) — viết tr."},
+  {correct:"chông gai", wrong:"trông gai", type:"ch-tr", note:"“chông gai” = khó khăn, gian khổ — viết ch."},
+  {correct:"che chở", wrong:"che trở", type:"ch-tr", note:"“che chở” = bảo vệ, bao bọc — viết ch."},
+
+  {correct:"não nùng", wrong:"lão nùng", type:"n-l", note:"“não nùng” = buồn thảm, day dứt — viết n."},
+  {correct:"lăm le", wrong:"năm le", type:"n-l", note:"“lăm le” = có ý định sẵn, chực chờ — viết l."},
+  {correct:"nương tựa", wrong:"lương tựa", type:"n-l", note:"“nương tựa” = dựa vào, nhờ cậy — viết n."},
+  {correct:"lung tung", wrong:"nung tung", type:"n-l", note:"“lung tung” = lộn xộn, bừa bãi — viết l."},
+  {correct:"náo loạn", wrong:"láo loạn", type:"n-l", note:"“náo loạn” = ồn ào, hỗn loạn — viết n."},
+  {correct:"náo nhiệt", wrong:"láo nhiệt", type:"n-l", note:"“náo nhiệt” = đông vui, ồn ào nhộn nhịp — viết n."},
+  {correct:"lấp lánh", wrong:"nấp lánh", type:"n-l", note:"“lấp lánh” tả ánh sáng lung linh — viết l."},
+  {correct:"nem nép", wrong:"lem lép", type:"n-l", note:"“nem nép” = rụt rè, nép sát vào — viết n."},
+  {correct:"lảo đảo", wrong:"nảo đảo", type:"n-l", note:"“lảo đảo” = choáng váng, đi không vững — viết l."},
+  {correct:"nản lòng", wrong:"lản lòng", type:"n-l", note:"“nản lòng” = mất tinh thần, chán nản — viết n."},
+  {correct:"lỡ dở", wrong:"nỡ dở", type:"n-l", note:"“lỡ dở” = dang dở, không trọn vẹn — viết l."},
+
+  {correct:"xác thực", wrong:"sác thực", type:"s-x", note:"“xác thực” = đúng, có thật — viết x."},
+  {correct:"sinh động", wrong:"xinh động", type:"s-x", note:"“sinh động” = sống động, có sức sống — viết s."},
+  {correct:"xót thương", wrong:"sót thương", type:"s-x", note:"“xót thương” = thương cảm, đau lòng — viết x."},
+  {correct:"xoay vòng", wrong:"soay vòng", type:"s-x", note:"“xoay vòng” = quay tròn, luân phiên — viết x."},
+  {correct:"suy xét", wrong:"suy sét", type:"s-x", note:"“suy xét” = suy nghĩ, cân nhắc kỹ — viết x."},
+  {correct:"xét lại", wrong:"sét lại", type:"s-x", note:"“xét lại” = xem xét lại — viết x."},
+  {correct:"sinh sống", wrong:"xinh sống", type:"s-x", note:"“sinh sống” = sống, cư trú — viết s."},
+  {correct:"xa cách", wrong:"sa cách", type:"s-x", note:"“xa cách” = cách xa nhau — viết x."},
+  {correct:"sa cơ", wrong:"xa cơ", type:"s-x", note:"“sa cơ” = gặp vận rủi (sa cơ lỡ vận) — viết s."},
+  {correct:"xa hoa", wrong:"sa hoa", type:"s-x", note:"“xa hoa” = lộng lẫy, tốn kém — viết x."},
+  {correct:"xúng xính", wrong:"súng sính", type:"s-x", note:"“xúng xính” tả dáng vẻ mặc đồ rộng, thướt tha — viết x."},
+  {correct:"xoàng xĩnh", wrong:"soàng sĩnh", type:"s-x", note:"“xoàng xĩnh” = tầm thường, xoàng xoàng — viết x."},
+  {correct:"sờn lòng", wrong:"xờn lòng", type:"s-x", note:"“sờn lòng” = nản chí, giảm quyết tâm — viết s."},
+
+  {correct:"rắp tâm", wrong:"dắp tâm", type:"r-d-gi", note:"“rắp tâm” = có ý định xấu từ trước — viết r."},
+  {correct:"dấm dúi", wrong:"rấm rúi", type:"r-d-gi", note:"“dấm dúi” = lén lút, giấu giếm — viết d."},
+  {correct:"rúc rích", wrong:"dúc dích", type:"r-d-gi", note:"“rúc rích” tả tiếng cười khúc khích — viết r."},
+  {correct:"gieo trồng", wrong:"reo trồng", type:"r-d-gi", note:"“gieo trồng” viết gi (gieo), không phải “reo” (hô vang)."},
+  {correct:"giằng co", wrong:"rằng co", type:"r-d-gi", note:"“giằng co” = kéo qua kéo lại — viết gi."},
+  {correct:"giằng xé", wrong:"rằng xé", type:"r-d-gi", note:"“giằng xé” = xâu xé, kéo mạnh — viết gi."},
+  {correct:"dùng dằng", wrong:"rùng rằng", type:"r-d-gi", note:"“dùng dằng” = lưỡng lự, chưa dứt khoát — viết d."},
+  {correct:"rung chuyển", wrong:"dung chuyển", type:"r-d-gi", note:"“rung chuyển” = lay động mạnh — viết r."},
+  {correct:"gieo mầm", wrong:"reo mầm", type:"r-d-gi", note:"“gieo mầm” viết gi (gieo)."},
+  {correct:"giấy tờ", wrong:"dấy tờ", type:"r-d-gi", note:"“giấy tờ” viết gi."},
+  {correct:"giấc mơ", wrong:"dấc mơ", type:"r-d-gi", note:"“giấc mơ” viết gi."},
+  {correct:"rạo rực", wrong:"dạo rực", type:"r-d-gi", note:"“rạo rực” = náo nức, xao xuyến trong lòng — viết r."},
+
+  {correct:"trĩu nặng", wrong:"chĩu nặng", type:"ch-tr", note:"“trĩu nặng” = nặng đến mức cong xuống — viết tr."},
+  {correct:"trù liệu", wrong:"chù liệu", type:"ch-tr", note:"“trù liệu” = tính toán, dự liệu trước — viết tr."},
+  {correct:"truyền đạt", wrong:"chuyền đạt", type:"ch-tr", note:"“truyền đạt” = trao lại thông tin, kiến thức — viết tr."},
+  {correct:"truyền cảm", wrong:"chuyền cảm", type:"ch-tr", note:"“truyền cảm” = gây xúc động, lay động — viết tr."},
+  {correct:"chao đảo", wrong:"trao đảo", type:"ch-tr", note:"“chao đảo” = lảo đảo, mất thăng bằng — viết ch."},
+  {correct:"chấp thuận", wrong:"trấp thuận", type:"ch-tr", note:"“chấp thuận” = đồng ý cho phép — viết ch."},
+  {correct:"trân trối", wrong:"chân trối", type:"ch-tr", note:"“nhìn trân trối” = nhìn chằm chằm không chớp mắt — viết tr."},
+  {correct:"chưng hửng", wrong:"trưng hửng", type:"ch-tr", note:"“chưng hửng” = ngỡ ngàng, hụt hẫng — viết ch."},
+  {correct:"trèo cao", wrong:"chèo cao", type:"ch-tr", note:"“trèo cao” (leo trèo) viết tr, khác “chèo” (chèo thuyền)."},
+
+  {correct:"lăn tăn", wrong:"năn tăn", type:"n-l", note:"“lăn tăn” = gợn nhẹ, băn khoăn nhỏ — viết l."},
+  {correct:"nôn nả", wrong:"lôn nả", type:"n-l", note:"“nôn nả” = háo hức, vội vã — viết n."},
+  {correct:"lẩn tránh", wrong:"nẩn tránh", type:"n-l", note:"“lẩn tránh” = né tránh, trốn tránh — viết l."},
+  {correct:"nài ép", wrong:"lài ép", type:"n-l", note:"“nài ép” = ép buộc, nài nỉ — viết n."},
+  {correct:"lóng lánh", wrong:"nóng lánh", type:"n-l", note:"“lóng lánh” tả ánh sáng lấp lánh — viết l."},
+  {correct:"lỏng lẻo", wrong:"nỏng nẻo", type:"n-l", note:"“lỏng lẻo” = không chắc chắn, dễ tuột — viết l."},
+  {correct:"nắn nót", wrong:"lắn lót", type:"n-l", note:"“nắn nót” = viết/làm cẩn thận, tỉ mỉ — viết n."},
+  {correct:"lem luốc", wrong:"nem nuốc", type:"n-l", note:"“lem luốc” = dơ bẩn, lấm lem — viết l."},
+  {correct:"lỡ lời", wrong:"nỡ lời", type:"n-l", note:"“lỡ lời” = trót nói ra điều không nên — viết l."},
+
+  {correct:"chí hướng", wrong:"trí hướng", type:"ch-tr", note:"“chí” = ý chí, hoài bão (chí hướng, chí lớn) — viết ch, khác “trí” (đầu óc, trí tuệ)."},
+  {correct:"sơ tán", wrong:"xơ tán", type:"s-x", note:"“sơ tán” = di chuyển đến nơi an toàn — viết s."},
+  {correct:"xoay chuyển", wrong:"soay chuyển", type:"s-x", note:"“xoay chuyển” = làm thay đổi tình thế — viết x."},
+  {correct:"xoay quanh", wrong:"soay quanh", type:"s-x", note:"“xoay quanh” = xoay vòng, tập trung vào — viết x."},
+  {correct:"sốt sắng", wrong:"xốt xắng", type:"s-x", note:"“sốt sắng” = nhiệt tình, tích cực — viết s."},
+  {correct:"sốt ruột", wrong:"xốt ruột", type:"s-x", note:"“sốt ruột” = nóng lòng, không kiên nhẫn — viết s."},
+  {correct:"xun xoe", wrong:"sun soe", type:"s-x", note:"“xun xoe” = nịnh bợ, làm quá mức — viết x."},
+  {correct:"sờ mó", wrong:"xờ mó", type:"s-x", note:"“sờ mó” = chạm, đụng vào — viết s."},
+  {correct:"xoay vần", wrong:"soay vần", type:"s-x", note:"“xoay vần” = luân chuyển, xoay vòng theo chu kỳ — viết x."},
+
+  {correct:"rõ ràng", wrong:"rõ dàng", type:"r-d-gi", note:"“ràng” trong “rõ ràng” viết r, không phải “dàng”."},
+  {correct:"rôm rả", wrong:"dôm dả", type:"r-d-gi", note:"“rôm rả” = vui vẻ, náo nhiệt (trò chuyện rôm rả) — viết r."},
+  {correct:"rạng đông", wrong:"dạng đông", type:"r-d-gi", note:"“rạng đông” = lúc trời vừa sáng — viết r."},
+  {correct:"rực cháy", wrong:"dực cháy", type:"r-d-gi", note:"“rực cháy” tả lửa/màu sắc mạnh mẽ — viết r."},
+  {correct:"rẻ rúng", wrong:"dẻ rúng", type:"r-d-gi", note:"“rẻ rúng” = coi thường, khinh rẻ — viết r."},
+
+  {correct:"chiều chuộng", wrong:"triều chuộng", type:"ch-tr", note:"“chiều chuộng” = nuông chiều — viết ch."},
+  {correct:"chống chế", wrong:"trống chế", type:"ch-tr", note:"“chống chế” = biện hộ, tìm lý do — viết ch."},
+  {correct:"chống trả", wrong:"trống trả", type:"ch-tr", note:"“chống trả” = kháng cự lại — viết ch."},
+  {correct:"chờ đợi", wrong:"trờ đợi", type:"ch-tr", note:"“chờ đợi” viết ch."},
+  {correct:"trò đùa", wrong:"chò đùa", type:"ch-tr", note:"“trò” trong trò đùa, trò chơi — viết tr."},
+  {correct:"trắng trợn", wrong:"chắng trợn", type:"ch-tr", note:"“trắng trợn” = trơ trẽn, thái quá — viết tr."},
+  {correct:"trẻ trung", wrong:"chẻ trung", type:"ch-tr", note:"“trẻ trung” viết tr, khác “chẻ” (bổ, tách ra)."},
+  {correct:"trốn nợ", wrong:"chốn nợ", type:"ch-tr", note:"“trốn” = lẩn tránh (trốn nợ, trốn học) — viết tr."},
+  {correct:"trầm tĩnh", wrong:"chầm tĩnh", type:"ch-tr", note:"“trầm tĩnh” = điềm đạm, bình tĩnh — viết tr."},
+  {correct:"trục xuất", wrong:"chục xuất", type:"ch-tr", note:"“trục xuất” = buộc phải rời đi — viết tr."},
+  {correct:"trọng dụng", wrong:"chọng dụng", type:"ch-tr", note:"“trọng dụng” = coi trọng và sử dụng — viết tr."},
+  {correct:"trầy trật", wrong:"chầy chật", type:"ch-tr", note:"“trầy trật” = vất vả, khó khăn — viết tr."},
+  {correct:"chầm chậm", wrong:"trầm chậm", type:"ch-tr", note:"“chầm chậm” = từ từ, chậm rãi — viết ch."},
+
+  {correct:"lận đận", wrong:"nận đận", type:"n-l", note:"“lận đận” = vất vả, gặp nhiều trắc trở — viết l."},
+  {correct:"lam lũ", wrong:"nam lũ", type:"n-l", note:"“lam lũ” = nghèo khó, vất vả — viết l."},
+  {correct:"loanh quanh", wrong:"noanh quanh", type:"n-l", note:"“loanh quanh” = quanh quẩn, không đi xa — viết l."},
+  {correct:"lảnh lót", wrong:"nảnh lót", type:"n-l", note:"“lảnh lót” tả tiếng hót trong trẻo, cao vút — viết l."},
+  {correct:"lơ đãng", wrong:"nơ đãng", type:"n-l", note:"“lơ đãng” = không tập trung, sao nhãng — viết l."},
+  {correct:"lơ láo", wrong:"nơ láo", type:"n-l", note:"“lơ láo” = ngơ ngác nhìn quanh — viết l."},
+  {correct:"lấm láp", wrong:"nấm náp", type:"n-l", note:"“lấm láp” = dính bẩn, lem luốc — viết l."},
+  {correct:"lem nhem", wrong:"nem nhem", type:"n-l", note:"“lem nhem” = lem luốc, không sạch sẽ — viết l."},
+  {correct:"náo nức", wrong:"láo núc", type:"n-l", note:"“náo nức” = hào hứng, phấn khởi — viết n."},
+  {correct:"lẽo đẽo", wrong:"nẽo đẽo", type:"n-l", note:"“lẽo đẽo” = theo sát phía sau — viết l."},
+  {correct:"nương rẫy", wrong:"lương rẫy", type:"n-l", note:"“nương rẫy” = đất trồng trọt ở miền núi — viết n."},
+
+  {correct:"run rẩy", wrong:"rung rẩy", type:"other", note:"“run rẩy” = rung lên vì lạnh, sợ hoặc yếu — viết “run”, không phải “rung” (rung động, rung chuyển)."},
+
+  // ---- BỔ SUNG THÊM (đợt 2) ----
+  // s / x
+  {correct:"sơ sài", wrong:"xơ sài", type:"s-x", note:"“sơ” = qua loa, chưa kỹ — viết s, như trong “sơ suất, sơ sài”."},
+  {correct:"sát sườn", wrong:"xát sườn", type:"s-x", note:"“sát sườn” = thiết thực, gắn liền thực tế — viết s."},
+  {correct:"xổ số", wrong:"sổ số", type:"s-x", note:"“xổ” = quay, mở ra ngẫu nhiên (xổ số) — viết x."},
+  {correct:"sáng chế", wrong:"xáng chế", type:"s-x", note:"“sáng” = tạo ra cái mới (sáng chế, sáng tạo) — viết s."},
+  {correct:"xuất phát", wrong:"suất phát", type:"s-x", note:"“xuất” = bắt đầu đi ra — viết x, khác “suất” (phần chia)."},
+  {correct:"sinh sản", wrong:"xinh sản", type:"s-x", note:"“sinh” = đẻ ra, sinh ra — viết s."},
+  {correct:"sáng dạ", wrong:"xáng dạ", type:"s-x", note:"“sáng dạ” = thông minh, mau hiểu — viết s."},
+  {correct:"xuê xoa", wrong:"suê xoa", type:"s-x", note:"“xuê xoa” = cho qua, dễ dãi bỏ qua lỗi — viết x."},
+  {correct:"sát khí", wrong:"xát khí", type:"s-x", note:"“sát khí” = khí thế đe dọa, hung dữ — viết s."},
+  {correct:"sán vào", wrong:"xán vào", type:"s-x", note:"“sán vào” = xáp lại gần một cách hào hứng — viết s, khác “xán lạn” (rực rỡ)."},
+  {correct:"sàm sỡ", wrong:"xàm xỡ", type:"s-x", note:"“sàm sỡ” = suồng sã, khiếm nhã — viết s."},
+  {correct:"súc vật", wrong:"xúc vật", type:"s-x", note:"“súc” = loài vật nuôi (gia súc, súc vật) — viết s."},
+  {correct:"sinh lực", wrong:"xinh lực", type:"s-x", note:"“sinh lực” = sức sống, năng lượng — viết s."},
+  {correct:"xoay sở", wrong:"soay sở", type:"s-x", note:"“xoay” = tìm cách xử lý, luôn viết x dù đi với “xở” hay “sở”."},
+  {correct:"sờ sờ", wrong:"xờ xờ", type:"s-x", note:"“sờ sờ” = ngay trước mắt, rõ ràng — viết s."},
+
+  // r / d / gi
+  {correct:"giễu nhại", wrong:"diễu nhại", type:"r-d-gi", note:"“giễu” = chế nhạo (giễu cợt, giễu nhại) — viết gi."},
+  {correct:"dạt dào", wrong:"rạt rào", type:"r-d-gi", note:"“dạt dào” = tràn đầy cảm xúc — viết d."},
+  {correct:"giẫm đạp", wrong:"rẫm đạp", type:"r-d-gi", note:"“giẫm” = dẫm chân mạnh lên — viết gi."},
+  {correct:"dò xét", wrong:"rò xét", type:"r-d-gi", note:"“dò xét” = quan sát, thăm dò kín đáo — viết d."},
+  {correct:"rành rọt", wrong:"dành dọt", type:"r-d-gi", note:"“rành rọt” = rõ ràng, mạch lạc từng chữ — viết r."},
+  {correct:"giương buồm", wrong:"dương buồm", type:"r-d-gi", note:"“giương” = căng ra, mở rộng — viết gi."},
+  {correct:"dạm hỏi", wrong:"rạm hỏi", type:"r-d-gi", note:"“dạm hỏi” = ướm hỏi chuyện cưới xin — viết d."},
+  {correct:"dan díu", wrong:"ran ríu", type:"r-d-gi", note:"“dan díu” = vướng vào quan hệ tình cảm vụng trộm — viết d."},
+  {correct:"rớt giá", wrong:"rớt dá", type:"r-d-gi", note:"“giá” (giá cả) viết gi, không phải “dá”."},
+  {correct:"giữ thể diện", wrong:"dữ thể diện", type:"r-d-gi", note:"“giữ” = duy trì, bảo vệ — viết gi."},
+  {correct:"rêu rao", wrong:"giêu rao", type:"r-d-gi", note:"“rêu rao” = loan tin (thường xấu) cho nhiều người — viết r, không phải gi."},
+  {correct:"giậm doạ", wrong:"rậm doạ", type:"r-d-gi", note:"“giậm” cùng nhóm với “giậm chân” — viết gi."},
+  {correct:"rành rẽ", wrong:"giành rẽ", type:"r-d-gi", note:"“rành” = thông thạo, rõ ràng — viết r, không phải gi."},
+  {correct:"dấm dẳng", wrong:"rấm rẳng", type:"r-d-gi", note:"“dấm dẳng” = hay gắt gỏng, cáu kỉnh — viết d."},
+
+  // ch / tr
+  {correct:"chần chừ", wrong:"trần trừ", type:"ch-tr", note:"“chần” = do dự, đắn đo (chần chừ) — viết ch."},
+  {correct:"trăn trở", wrong:"chăn chở", type:"ch-tr", note:"“trăn trở” = suy nghĩ trằn trọc, băn khoăn — viết tr."},
+  {correct:"trằn trọc", wrong:"chằn chọc", type:"ch-tr", note:"“trằn trọc” = không ngủ được vì suy nghĩ — viết tr."},
+  {correct:"chán chê", wrong:"tràn chê", type:"ch-tr", note:"“chán chê” = quá nhiều đến mức phát chán — viết ch."},
+  {correct:"trọng vọng", wrong:"chọng vọng", type:"ch-tr", note:"“trọng vọng” = kính trọng, tôn sùng — viết tr."},
+  {correct:"truy tìm", wrong:"chuy tìm", type:"ch-tr", note:"“truy tìm” = tìm kiếm ráo riết — viết tr."},
+  {correct:"chán ghét", wrong:"tràn ghét", type:"ch-tr", note:"“chán ghét” = ghét bỏ, không ưa — viết ch."},
+  {correct:"trốn chạy", wrong:"chốn chạy", type:"ch-tr", note:"“trốn chạy” = bỏ chạy để tránh né — viết tr."},
+  {correct:"chối bỏ", wrong:"trối bỏ", type:"ch-tr", note:"“chối bỏ” = không nhận, phủ nhận — viết ch, khác “trăng trối” (viết tr)."},
+  {correct:"trăng trối", wrong:"chăng trối", type:"ch-tr", note:"“trăng trối” = lời dặn lại trước khi mất — viết tr."},
+  {correct:"chuếnh choáng", wrong:"chuyếnh choáng", type:"ch-tr", note:"Từ đúng là “chuếnh choáng” (hơi say, lâng lâng) — không có “y”."},
+  {correct:"trù bị", wrong:"chù bị", type:"ch-tr", note:"“trù bị” = chuẩn bị trước — viết tr."},
+  {correct:"chới với", wrong:"trới với", type:"ch-tr", note:"“chới với” = chơi vơi, không bám víu được — viết ch."},
+  {correct:"trọc phú", wrong:"chọc phú", type:"ch-tr", note:"“trọc phú” = kẻ giàu có mà thô lỗ — viết tr."},
+
+  // n / l
+  {correct:"nôn mửa", wrong:"lôn mửa", type:"n-l", note:"“nôn mửa” = ói ra — viết n."},
+  {correct:"lỡ tay", wrong:"nỡ tay", type:"n-l", note:"“lỡ tay” = vô ý làm điều gì đó — viết l."},
+  {correct:"lóe sáng", wrong:"nóe sáng", type:"n-l", note:"“lóe sáng” = bừng sáng lên chớp nhoáng — viết l."},
+  {correct:"nao nao", wrong:"lao lao", type:"n-l", note:"“nao nao” = bồi hồi, xao xuyến trong lòng — viết n."},
+  {correct:"lảng vảng", wrong:"nảng vảng", type:"n-l", note:"“lảng vảng” = đi lại gần đó có vẻ dò xét — viết l."},
+  {correct:"nín lặng", wrong:"lín lặng", type:"n-l", note:"“nín lặng” = im lặng không nói gì — viết n."},
+  {correct:"lẩy bẩy", wrong:"nẩy bẩy", type:"n-l", note:"“lẩy bẩy” = run rẩy toàn thân — viết l."},
+  {correct:"lăm lăm", wrong:"năm năm", type:"n-l", note:"“lăm lăm” = cầm chắc, sẵn sàng trong tay — viết l."},
+  {correct:"nơm nớp", wrong:"lơm lớp", type:"n-l", note:"“nơm nớp” = lo sợ thường trực, phập phồng — viết n."},
+  {correct:"lè nhè", wrong:"nè nhè", type:"n-l", note:"“lè nhè” = nói dai dẳng, khó nghe (thường khi say) — viết l."},
+  {correct:"lửng lơ", wrong:"nửng nơ", type:"n-l", note:"“lửng lơ” = chưa rõ ràng, chưa dứt khoát — viết l."},
+  {correct:"nao nức", wrong:"lao núc", type:"n-l", note:"“nao nức” = hào hứng, phấn khởi mong chờ — viết n."},
+  {correct:"lung túng", wrong:"nung túng", type:"n-l", note:"Từ đúng là “lúng túng” (viết l); đừng nhầm với “lung tung” (lộn xộn)."},
+
+  // other
+  {correct:"chuếnh choáng", wrong:"choáng chuếnh", type:"other", note:"Đảo lộn trật tự âm tiết là sai; đúng phải giữ nguyên “chuếnh choáng”."},
+  {correct:"tựu chung lại", wrong:"tựu trung lại", type:"other", note:"Thật ra “tựu trung” (không thêm “lại”) mới là dạng chuẩn; nhiều người viết thừa “lại” hoặc nhầm thành “chung”."},
+  {correct:"trân trọng cảm ơn", wrong:"chân trọng cảm ơn", type:"ch-tr", note:"“trân trọng” = quý trọng, kính trọng — viết tr, không phải “chân”."},
+  {correct:"kinh nghiệm", wrong:"kinh nghiệp", type:"other", note:"“nghiệm” = trải qua và rút ra bài học — không phải “nghiệp” (nghề nghiệp)."},
+  {correct:"cọ xát thực tế", wrong:"cọ sát thực tế", type:"s-x", note:"“xát” = chà, tiếp xúc trực tiếp — viết x, giống “cọ xát”."},
+  {correct:"giả định", wrong:"dả định", type:"r-d-gi", note:"“giả định” = đặt ra một tình huống coi như có thật — viết gi."},
+  {correct:"chuẩn mực", wrong:"truẩn mực", type:"ch-tr", note:"“chuẩn” = mực thước, khuôn mẫu — viết ch."},
+];
+
+const ACTIVE = DICT;
+
+// Cặp từ CÙNG đúng chính tả nhưng khác nghĩa — chỉ để tham khảo ở tab Từ điển,
+// KHÔNG bị gạch đỏ khi gõ vì cả hai đều là từ hợp lệ, chỉ khác ngữ cảnh dùng.
+const CONTEXT_PAIRS = [
+  {a:"trở về", b:"chở về", noteA:"tự mình quay về (VD: tôi trở về nhà)", noteB:"mang/vận chuyển cái gì đó về (VD: chở về một xe gạo)"},
+  {a:"trở mình", b:"chở người", noteA:"xoay người khi nằm", noteB:"vận chuyển người (VD: xe chở người)"},
+  {a:"giành", b:"dành", noteA:"tranh lấy (giành chiến thắng)", noteB:"để dành, dành dụm"},
+  {a:"dấu", b:"giấu", noteA:"danh từ: dấu vết, dấu chấm", noteB:"động từ: che giấu, giấu diếm"},
+  {a:"sát", b:"sáp", noteA:"gần kề, giết (sát hại)", noteB:"gắn dính vào nhau (sáp nhập)"},
+  {a:"giễu", b:"diễu", noteA:"chế nhạo, trêu chọc (giễu cợt)", noteB:"đi thành đoàn, trình diễn (diễu binh, diễu hành)"},
+  {a:"giả thuyết", b:"giả thiết", noteA:"nhận định khoa học chưa được chứng minh", noteB:"điều kiện đặt ra trước (thường dùng trong toán học, logic)"},
+  {a:"chuyện", b:"truyện", noteA:"lời nói, sự việc kể lại (câu chuyện, chuyện trò)", noteB:"tác phẩm văn học, sách (đọc truyện, truyện ngắn)"},
+  {a:"chuyền", b:"truyền", noteA:"chuyển qua lại bằng tay (chuyền bóng, dây chuyền)", noteB:"trao lại về thông tin/tinh thần (truyền đạt, truyền thống)"},
+];
+
+const WRONG_MAP = new Map();
+ACTIVE.forEach(e=>{
+  WRONG_MAP.set(e.wrong.toLowerCase(), e);
+});
+
+const TYPE_LABELS = {
+  "s-x":"s / x", "r-d-gi":"r / d / gi", "ch-tr":"ch / tr", "n-l":"n / l", "other":"Cặp từ dễ nhầm"
+};
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const el = document.getElementById('dictCountLabel');
+  if(el) el.textContent = `hơn ${ACTIVE.length} cặp từ thực sự hay bị viết sai`;
+});
+
+/* ================= CHECKER LOGIC (real-time) ================= */
+const editor = document.getElementById('editor');
+const fixAllBtn = document.getElementById('fixAllBtn');
+const clearBtn = document.getElementById('clearBtn');
+const statLine = document.getElementById('statLine');
+
+let lastMatches = []; // {start,end,text,entry}
+let currentPopover = null;
+let debounceTimer = null;
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function findMatches(text){
+  const matches = [];
+  const wordRe = /[A-Za-zÀ-ỹà-ỹĂăÂâÊêÔôƠơƯưĐđ]+/g;
+  let m;
+  const tokens = [];
+  while((m = wordRe.exec(text)) !== null){
+    tokens.push({word:m[0], start:m.index, end:m.index+m[0].length});
+  }
+  let i=0;
+  while(i < tokens.length){
+    // 1) try curated bigram (contextual / semantic) dictionary first
+    if(i+1 < tokens.length){
+      const gapText = text.slice(tokens[i].end, tokens[i+1].start);
+      if(/^\s+$/.test(gapText)){
+        const bigram = (tokens[i].word + ' ' + tokens[i+1].word).toLowerCase();
+        if(WRONG_MAP.has(bigram)){
+          const entry = WRONG_MAP.get(bigram);
+          matches.push({start:tokens[i].start, end:tokens[i+1].end, text: tokens[i].word+' '+tokens[i+1].word, entry});
+          i += 2;
+          continue;
+        }
+      }
+    }
+    // 2) curated single-word dictionary
+    const uni = tokens[i].word.toLowerCase();
+    if(WRONG_MAP.has(uni)){
+      const entry = WRONG_MAP.get(uni);
+      matches.push({start:tokens[i].start, end:tokens[i].end, text: tokens[i].word, entry});
+      i += 1;
+      continue;
+    }
+    i += 1;
+  }
+  return matches;
+}
+
+function preserveCase(original, replacement){
+  if(original === original.toUpperCase()) return replacement.toUpperCase();
+  if(original[0] === original[0].toUpperCase()) return replacement.charAt(0).toUpperCase()+replacement.slice(1);
+  return replacement;
+}
+
+function getCaretOffset(el){
+  const sel = window.getSelection();
+  if(!sel || sel.rangeCount === 0) return null;
+  const range = sel.getRangeAt(0);
+  if(!el.contains(range.startContainer)) return null;
+  const pre = range.cloneRange();
+  pre.selectNodeContents(el);
+  pre.setEnd(range.endContainer, range.endOffset);
+  return pre.toString().length;
+}
+
+function setCaretOffset(el, offset){
+  const range = document.createRange();
+  const sel = window.getSelection();
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+  let node, remaining = offset, placed = false;
+  while((node = walker.nextNode())){
+    if(remaining <= node.length){
+      range.setStart(node, Math.max(0,remaining));
+      range.collapse(true);
+      placed = true;
+      break;
+    }
+    remaining -= node.length;
+  }
+  if(!placed){
+    range.selectNodeContents(el);
+    range.collapse(false);
+  }
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function getPlainText(){
+  return editor.textContent;
+}
+
+function renderResult(preserveCaret){
+  const text = getPlainText();
+  const caret = preserveCaret ? getCaretOffset(editor) : null;
+
+  lastMatches = findMatches(text);
+  let html = '';
+  let cursor = 0;
+  lastMatches.forEach((mt, idx)=>{
+    html += escapeHtml(text.slice(cursor, mt.start));
+    html += `<span class="flag" data-idx="${idx}">${escapeHtml(mt.text)}</span>`;
+    cursor = mt.end;
+  });
+  html += escapeHtml(text.slice(cursor));
+  editor.innerHTML = html;
+
+  if(caret !== null){
+    setCaretOffset(editor, caret);
+  }
+
+  fixAllBtn.style.display = lastMatches.length ? 'inline-block' : 'none';
+  if(lastMatches.length === 0){
+    statLine.innerHTML = text.trim() ? '✅ Chưa thấy lỗi nào trong từ điển của mình!' : '';
+  } else {
+    statLine.innerHTML = `Tìm thấy <b>${lastMatches.length}</b> chỗ nghi ngờ — chạm vào từ đỏ để xem gợi ý.`;
+  }
+}
+
+editor.addEventListener('input', ()=>{
+  closePopover();
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(()=> renderResult(true), isTouch ? 550 : 350);
+});
+
+editor.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    document.execCommand('insertText', false, '\n');
+  }
+});
+
+function openPopoverForFlag(flag){
+  closePopover();
+  const idx = parseInt(flag.dataset.idx,10);
+  const mt = lastMatches[idx];
+  if(!mt) return;
+  const entry = mt.entry;
+  const pop = document.createElement('div');
+  pop.className = 'popover';
+  const corrected = preserveCase(mt.text.split(' ')[0], entry.correct);
+  pop.innerHTML = `
+    <button class="close" aria-label="Đóng">✕</button>
+    <div class="correct">${escapeHtml(corrected)}</div>
+    <div class="note">${escapeHtml(entry.note || '')}</div>
+    <button class="apply-one">Sửa từ này</button>
+  `;
+  document.body.appendChild(pop);
+
+  const rect = flag.getBoundingClientRect();
+  const popRect = pop.getBoundingClientRect();
+  const margin = 10;
+  let left = rect.left + window.scrollX;
+  const maxLeft = window.scrollX + document.documentElement.clientWidth - popRect.width - margin;
+  const minLeft = window.scrollX + margin;
+  left = Math.max(minLeft, Math.min(left, maxLeft));
+
+  let top = rect.bottom + window.scrollY + 8;
+  const wouldOverflowBottom = (rect.bottom + popRect.height + 16) > window.innerHeight;
+  if(wouldOverflowBottom){
+    top = rect.top + window.scrollY - popRect.height - 8;
+  }
+  pop.style.left = left + 'px';
+  pop.style.top = top + 'px';
+  currentPopover = pop;
+
+  pop.querySelector('.close').addEventListener('click', closePopover);
+  pop.querySelector('.apply-one').addEventListener('click', ()=>{
+    applyFix(idx);
+    closePopover();
+  });
+}
+
+editor.addEventListener('click', (e)=>{
+  const flag = e.target.closest('.flag');
+  if(!flag){ closePopover(); return; }
+  openPopoverForFlag(flag);
+});
+
+document.addEventListener('click', (e)=>{
+  if(currentPopover && !currentPopover.contains(e.target) && !e.target.closest('.flag')){
+    closePopover();
+  }
+});
+window.addEventListener('resize', closePopover);
+window.addEventListener('scroll', closePopover, true);
+
+function closePopover(){
+  if(currentPopover){ currentPopover.remove(); currentPopover = null; }
+}
+
+function applyFix(idx){
+  const text = getPlainText();
+  const mt = lastMatches[idx];
+  const corrected = preserveCase(mt.text, mt.entry.correct);
+  const newText = text.slice(0, mt.start) + corrected + text.slice(mt.end);
+  lastMatches = findMatches(newText);
+  let html = '';
+  let cursor = 0;
+  lastMatches.forEach((m2, i2)=>{
+    html += escapeHtml(newText.slice(cursor, m2.start));
+    html += `<span class="flag" data-idx="${i2}">${escapeHtml(m2.text)}</span>`;
+    cursor = m2.end;
+  });
+  html += escapeHtml(newText.slice(cursor));
+  editor.innerHTML = html;
+  setCaretOffset(editor, mt.start + corrected.length);
+  fixAllBtn.style.display = lastMatches.length ? 'inline-block' : 'none';
+  statLine.innerHTML = lastMatches.length
+    ? `Tìm thấy <b>${lastMatches.length}</b> chỗ nghi ngờ — chạm vào từ đỏ để xem gợi ý.`
+    : '✅ Chưa thấy lỗi nào trong từ điển của mình!';
+}
+
+function applyAllFixes(){
+  const text = getPlainText();
+  let result = '';
+  let cursor = 0;
+  lastMatches.forEach(mt=>{
+    result += text.slice(cursor, mt.start);
+    result += preserveCase(mt.text, mt.entry.correct);
+    cursor = mt.end;
+  });
+  result += text.slice(cursor);
+  editor.textContent = result;
+  renderResult(false);
+  const range = document.createRange();
+  range.selectNodeContents(editor);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+fixAllBtn.addEventListener('click', applyAllFixes);
+clearBtn.addEventListener('click', ()=>{
+  editor.textContent = '';
+  fixAllBtn.style.display = 'none';
+  statLine.innerHTML = '';
+  closePopover();
+  editor.focus();
+});
+
+/* ================= TABS ================= */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.panel).classList.add('active');
+    closePopover();
+    if(btn.dataset.panel === 'practice') newCard();
+    if(btn.dataset.panel === 'selectgame' && !sgRound) newSelectGameRound();
+  });
+});
+
+/* ================= DICTIONARY BROWSER ================= */
+const dictFilters = document.getElementById('dictFilters');
+const dictGrid = document.getElementById('dictGrid');
+let activeType = 'all';
+
+const types = ['all', ...Object.keys(TYPE_LABELS), 'context'];
+types.forEach(t=>{
+  const chip = document.createElement('button');
+  chip.className = 'chip' + (t==='all' ? ' active':'');
+  if(t==='all') chip.textContent = `Tất cả (${ACTIVE.length})`;
+  else if(t==='context') chip.textContent = `Dễ lẫn nghĩa (${CONTEXT_PAIRS.length})`;
+  else chip.textContent = TYPE_LABELS[t] + ` (${ACTIVE.filter(e=>e.type===t).length})`;
+  chip.addEventListener('click', ()=>{
+    activeType = t;
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    renderDict();
+  });
+  dictFilters.appendChild(chip);
+});
+
+function renderDict(){
+  if(activeType === 'context'){
+    dictGrid.innerHTML = CONTEXT_PAIRS.map(p=>`
+      <div class="dict-card">
+        <div class="cat-tag">Cả hai đều đúng — khác nghĩa</div>
+        <div class="pair">
+          <span class="ok">${escapeHtml(p.a)}</span>
+          <span class="ok" style="color:var(--brass);">${escapeHtml(p.b)}</span>
+        </div>
+        <div class="note"><b>${escapeHtml(p.a)}</b>: ${escapeHtml(p.noteA)}<br><b>${escapeHtml(p.b)}</b>: ${escapeHtml(p.noteB)}</div>
+      </div>
+    `).join('');
+    return;
+  }
+  const list = activeType==='all' ? ACTIVE : ACTIVE.filter(e=>e.type===activeType);
+  dictGrid.innerHTML = list.map(e=>`
+    <div class="dict-card">
+      <div class="cat-tag">${TYPE_LABELS[e.type]}</div>
+      <div class="pair">
+        <span class="ok">${escapeHtml(e.correct)}</span>
+        <span class="no">${escapeHtml(e.wrong)}</span>
+      </div>
+      <div class="note">${escapeHtml(e.note)}</div>
+    </div>
+  `).join('');
+}
+renderDict();
+
+/* ================= PRACTICE FLASHCARDS ================= */
+const cardPrompt = document.getElementById('cardPrompt');
+const cardChoices = document.getElementById('cardChoices');
+const cardFeedback = document.getElementById('cardFeedback');
+const practiceStats = document.getElementById('practiceStats');
+const skipBtn = document.getElementById('skipBtn');
+let score = {correct:0, total:0};
+let current = null;
+
+function pickCard(){
+  const e = ACTIVE[Math.floor(Math.random()*ACTIVE.length)];
+  return e;
+}
+
+function newCard(){
+  cardFeedback.textContent = '';
+  current = pickCard();
+  cardPrompt.innerHTML = `Từ nào viết đúng?`;
+  const choices = Math.random() > 0.5 ? [current.correct, current.wrong] : [current.wrong, current.correct];
+  cardChoices.innerHTML = '';
+  choices.forEach(choiceText=>{
+    const b = document.createElement('button');
+    b.className = 'choice-btn';
+    b.textContent = choiceText;
+    b.addEventListener('click', ()=> answer(choiceText, b));
+    cardChoices.appendChild(b);
+  });
+}
+
+function answer(choiceText, btn){
+  const isCorrect = choiceText === current.correct;
+  score.total++;
+  if(isCorrect) score.correct++;
+  document.querySelectorAll('.choice-btn').forEach(b=>{
+    b.disabled = true;
+    if(b.textContent === current.correct) b.classList.add('correct');
+    else if(b === btn) b.classList.add('wrong');
+  });
+  cardFeedback.style.color = isCorrect ? '#1d6b3f' : 'var(--red)';
+  cardFeedback.innerHTML = (isCorrect ? '✅ Chính xác! ' : '❌ Chưa đúng. ') + escapeHtml(current.note);
+  practiceStats.textContent = `Đúng ${score.correct} / Đã làm ${score.total}`;
+}
+
+skipBtn.addEventListener('click', newCard);
+newCard();
+
+/* ================= SELECT-THE-CORRECT-WORDS GAME ================= */
+const sgGrid = document.getElementById('sgGrid');
+const sgSubmitBtn = document.getElementById('sgSubmitBtn');
+const sgNewBtn = document.getElementById('sgNewBtn');
+const sgAgainBtn = document.getElementById('sgAgainBtn');
+const sgPickedCount = document.getElementById('sgPickedCount');
+const sgLegend = document.getElementById('sgLegend');
+const sgScore = document.getElementById('sgScore');
+const sgActions = document.getElementById('sgActions');
+
+const SG_PAIRS_PER_ROUND = 10; // 10 pairs => 20 chips (correct + wrong of each)
+let sgRound = null; // {chips:[{text,isCorrect,entry,picked}], submitted}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function newSelectGameRound(){
+  const pool = shuffle(ACTIVE).slice(0, SG_PAIRS_PER_ROUND);
+  const chips = [];
+  pool.forEach(entry=>{
+    chips.push({text: entry.correct, isCorrect:true, entry, picked:false});
+    chips.push({text: entry.wrong, isCorrect:false, entry, picked:false});
+  });
+  sgRound = { chips: shuffle(chips), submitted:false };
+  sgLegend.style.display = 'none';
+  sgScore.textContent = '';
+  sgActions.style.display = 'none';
+  sgSubmitBtn.style.display = 'inline-block';
+  sgSubmitBtn.disabled = false;
+  renderSelectGame();
+}
+
+function renderSelectGame(){
+  sgGrid.innerHTML = '';
+  sgRound.chips.forEach((c, idx)=>{
+    const btn = document.createElement('button');
+    btn.className = 'word-chip' + (c.picked ? ' picked' : '');
+    btn.type = 'button';
+    let inner = escapeHtml(c.text);
+    if(sgRound.submitted){
+      btn.disabled = true;
+      if(c.isCorrect && c.picked) btn.classList.add('res-hit');
+      else if(c.isCorrect && !c.picked) btn.classList.add('res-missed');
+      else if(!c.isCorrect && c.picked) btn.classList.add('res-wrongpick');
+      else btn.classList.add('res-avoided');
+      if(!c.isCorrect){
+        inner += `<span class="sg-fix">→ ${escapeHtml(c.entry.correct)}</span>`;
+      }
+      btn.title = c.entry.note || '';
+    }
+    btn.innerHTML = inner;
+    btn.addEventListener('click', ()=>{
+      if(sgRound.submitted) return;
+      c.picked = !c.picked;
+      renderSelectGame();
+    });
+    sgGrid.appendChild(btn);
+  });
+  const pickedN = sgRound.chips.filter(c=>c.picked).length;
+  sgPickedCount.textContent = sgRound.submitted ? '' : `Đã chọn ${pickedN} / ${sgRound.chips.length} từ`;
+}
+
+function submitSelectGame(){
+  if(!sgRound || sgRound.submitted) return;
+  sgRound.submitted = true;
+  sgSubmitBtn.style.display = 'none';
+  sgLegend.style.display = 'flex';
+  sgActions.style.display = 'block';
+  renderSelectGame();
+
+  const totalCorrectWords = sgRound.chips.filter(c=>c.isCorrect).length;
+  const totalWrongWords = sgRound.chips.filter(c=>!c.isCorrect).length;
+  const hits = sgRound.chips.filter(c=>c.isCorrect && c.picked).length;
+  const avoided = sgRound.chips.filter(c=>!c.isCorrect && !c.picked).length;
+  const goodDecisions = hits + avoided;
+  sgScore.innerHTML = `Bạn nhận diện đúng <b>${goodDecisions}/${sgRound.chips.length}</b> từ — chọn đúng ${hits}/${totalCorrectWords} từ viết chuẩn, tránh được ${avoided}/${totalWrongWords} từ viết sai.`;
+}
+
+sgSubmitBtn.addEventListener('click', submitSelectGame);
+sgNewBtn.addEventListener('click', newSelectGameRound);
+sgAgainBtn.addEventListener('click', newSelectGameRound);
+</script>
+</body>
+</html>
