@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sổ Tay Chính Tả — Kiểm tra l/n, ch/tr, s/x, d/gi/r</title>
+<title>Chính Tả Turbo v10 — Sổ Tay Chính Tả — Nhost Dictionary v2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Be+Vietnam+Pro:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <style>
@@ -338,6 +338,11 @@
     text-align:center; padding:18px; color:rgba(255,255,255,.55); font-size:.82rem;
   }
 
+
+
+  /* ---- Nhost / Admin ---- */
+  .admin-shell{max-width:900px;margin:0 auto}.admin-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.admin-muted{color:var(--ink-soft);font-size:.84rem}.admin-card{background:var(--card);border:1px solid var(--rule);border-radius:7px;padding:18px;margin-top:16px;box-shadow:0 3px 10px var(--shadow)}.admin-form{display:grid;gap:12px;margin-top:14px}.admin-form.two{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-form label{font-size:.82rem;font-weight:700;color:var(--ink-soft);display:grid;gap:6px}.admin-form input,.admin-form select,.admin-form textarea,.admin-search{width:100%;border:1px solid var(--rule);border-radius:5px;background:#fffdf6;color:var(--ink);font:inherit;padding:10px 11px;outline:none}.admin-form input:focus,.admin-form select:focus,.admin-form textarea:focus,.admin-search:focus{border-color:var(--brass);box-shadow:0 0 0 2px rgba(169,130,63,.12)}.admin-actions,.admin-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}.admin-toolbar{justify-content:space-between}.admin-search{max-width:520px}.admin-x{border:0;background:transparent;font-size:1.1rem;color:var(--ink-soft);cursor:pointer}.inline-check{display:flex!important;grid-template-columns:auto 1fr;align-items:center;justify-content:start}.inline-check input{width:auto!important}.admin-table-wrap{overflow:auto}.admin-table{width:100%;border-collapse:collapse;min-width:680px}.admin-table th,.admin-table td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--rule);font-size:.85rem;vertical-align:top}.admin-table th{background:var(--paper-dark);font-size:.78rem;text-transform:uppercase;letter-spacing:.3px}.admin-table tr:last-child td{border-bottom:0}.admin-pill{display:inline-block;border-radius:999px;padding:3px 8px;font-size:.72rem;font-weight:700;background:rgba(39,107,69,.12);color:var(--green)}.admin-pill.off{background:rgba(168,69,63,.11);color:var(--red)}.mini-btn{border:1px solid var(--rule);background:transparent;border-radius:4px;padding:6px 8px;cursor:pointer;color:var(--ink);margin-right:5px}.mini-btn.danger{color:var(--red)}.db-badge{font-weight:700}.db-ok{color:var(--green)}.db-warn{color:var(--red)}
+
   @media (max-width:640px){
     body{ padding:0; }
     .book{ border-radius:0; min-height:100vh; }
@@ -371,7 +376,19 @@
     .practice-actions .btn{ width:100%; min-height:46px; }
     .word-grid{ grid-template-columns:repeat(2,1fr); }
     .sg-toolbar .btn{ flex:1 1 auto; min-height:46px; }
+    .admin-form.two{grid-template-columns:1fr}.admin-toolbar .btn,.admin-toolbar .admin-search{width:100%;max-width:none}
   }
+
+/* Turbo v6 confidence levels */
+.flag.suspect{
+  text-decoration-color:#e58a00;
+  background:rgba(229,138,0,.10);
+}
+.flag.context{
+  text-decoration-color:#c7a600;
+  background:rgba(199,166,0,.10);
+}
+
 </style>
 </head>
 <body>
@@ -379,7 +396,7 @@
 <div class="book">
   <header>
     <h1>Sổ Tay Chính Tả</h1>
-    <p class="sub">Kiểm tra nhanh các lỗi thường gặp: l/n · ch/tr · s/x · d/gi/r — dựa trên một từ điển các cặp từ dễ nhầm chính tả, chạy hoàn toàn trong trình duyệt, không cần máy chủ hay CSDL.</p>
+    <p class="sub">Kiểm tra chính tả tiếng Việt với từ điển Nhost — dữ liệu có thể cập nhật liên tục từ trang quản trị.</p>
     <div class="tagline">"viết đúng, nhớ mãi"</div>
   </header>
 
@@ -388,6 +405,7 @@
     <button class="tab-btn" data-panel="dictionary">📖 Từ điển lỗi thường gặp</button>
     <button class="tab-btn" data-panel="practice">🎯 Luyện nhanh</button>
     <button class="tab-btn" data-panel="selectgame">🔀 Chọn từ đúng</button>
+      <button class="tab-btn" data-panel="admin">⚙ Quản trị từ</button>
   </nav>
 
   <main>
@@ -446,9 +464,131 @@
         <button class="btn secondary" id="sgAgainBtn">Chơi ván khác →</button>
       </div>
     </section>
+
+    <!-- ADMIN -->
+    <section class="panel" id="panel-admin">
+      <div class="admin-shell">
+        <div class="admin-head">
+          <div>
+            <h2 style="margin:0 0 4px;font-family:'Playfair Display',serif;">Quản trị từ điển</h2>
+            <div class="admin-muted" id="dbStatus">Đang kiểm tra kết nối Nhost…</div>
+          </div>
+          <button class="btn secondary" id="adminLogoutBtn" style="display:none;">Đăng xuất</button>
+        </div>
+
+        <div id="adminLoginBox" class="admin-card">
+          <h3>Đăng nhập quản trị</h3>
+          <div class="admin-form two">
+            <label>Email<input id="adminEmail" type="email" autocomplete="username" placeholder="admin@example.com"></label>
+            <label>Mật khẩu<input id="adminPassword" type="password" autocomplete="current-password" placeholder="••••••••"></label>
+          </div>
+          <div class="admin-actions">
+            <button class="btn" id="adminLoginBtn">Đăng nhập</button>
+            <span class="admin-muted" id="adminLoginMsg"></span>
+          </div>
+        </div>
+
+        <div id="adminApp" style="display:none;">
+          <div class="admin-toolbar">
+            <input id="adminSearch" class="admin-search" placeholder="Tìm từ đúng, từ sai, nghĩa…">
+            <button class="btn red" id="newWordBtn">+ Thêm từ mới</button>
+          </div>
+
+          <div id="wordFormCard" class="admin-card" style="display:none;">
+            <div class="admin-head"><h3 id="wordFormTitle" style="margin:0;">Thêm từ mới</h3><button class="admin-x" id="closeWordFormBtn" type="button">✕</button></div>
+            <input type="hidden" id="wordId">
+            <div class="admin-form two">
+              <label>Từ / cụm từ đúng<input id="wordCorrect" placeholder="Ví dụ: súc tích"></label>
+              <label>Nhóm lỗi<select id="wordType"><option value="s-x">s / x</option><option value="r-d-gi">r / d / gi</option><option value="ch-tr">ch / tr</option><option value="n-l">n / l</option><option value="other">Khác</option></select></label>
+            </div>
+            <div class="admin-form">
+              <label>Nghĩa<textarea id="wordMeaning" rows="2" placeholder="Giải nghĩa ngắn gọn, dễ hiểu"></textarea></label>
+              <label>Ghi chú / mẹo nhớ<textarea id="wordNote" rows="2" placeholder="Giải thích vì sao viết như vậy"></textarea></label>
+              <label>Các cách viết sai <span class="admin-muted">(mỗi dòng một cách)</span><textarea id="wordWrong" rows="4" placeholder="xúc tích\n..."></textarea></label>
+              <label>Ví dụ <span class="admin-muted">(mỗi dòng một câu)</span><textarea id="wordExamples" rows="4" placeholder="Bài phát biểu rất súc tích.\n..."></textarea></label>
+              <label class="inline-check"><input id="wordActive" type="checkbox" checked> Đang sử dụng trong bộ kiểm tra</label>
+            </div>
+            <div class="admin-actions">
+              <button class="btn" id="saveWordBtn">Lưu từ</button>
+              <button class="btn secondary" id="cancelWordBtn">Hủy</button>
+              <span class="admin-muted" id="wordFormMsg"></span>
+            </div>
+          </div>
+
+          <div class="admin-card" style="padding:0;overflow:hidden;">
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead><tr><th>Từ đúng</th><th>Các cách sai</th><th>Nhóm</th><th>Trạng thái</th><th></th></tr></thead>
+                <tbody id="adminWordRows"></tbody></table>
+<div id="adminPager" style="display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0;flex-wrap:wrap">
+  <button class="mini-btn" id="adminPrevBtn">← Trước</button>
+  <span class="admin-muted" id="adminPageInfo">Trang 1</span>
+  <button class="mini-btn" id="adminNextBtn">Sau →</button>
+</div>
+<table style="display:none">
+              </table>
+            </div>
+          </div>
+
+
+          <div class="admin-card" style="margin-top:18px;">
+            <div class="admin-head">
+              <div>
+                <h3 style="margin:0;">🧪 Chẩn đoán Turbo v10</h3>
+                <div class="admin-muted">Kiểm tra Worker, cache, chỉ mục lỗi, từ chuẩn và tốc độ ngay trên máy.</div>
+              </div>
+              <button class="btn" id="runDiagnosticsBtn">Chạy kiểm tra</button>
+            </div>
+            <div id="diagnosticsResult" class="admin-muted" style="margin-top:12px;line-height:1.75;">Chưa chạy kiểm tra.</div>
+          </div>
+
+          <div class="admin-card" style="margin-top:18px;">
+            <div class="admin-head">
+              <div><h3 style="margin:0;">🧠 Quy tắc ngữ cảnh</h3><div class="admin-muted">Quản lý cảnh báo màu vàng — không tự sửa.</div></div>
+              <button class="btn red" id="newContextBtn">+ Thêm quy tắc</button>
+            </div>
+            <div class="admin-toolbar" style="margin-top:12px;">
+              <input id="contextSearch" class="admin-search" placeholder="Tìm mẫu, từ cần xét, gợi ý…">
+            </div>
+            <div id="contextFormCard" style="display:none;margin:12px 0;">
+              <input type="hidden" id="contextId">
+              <div class="admin-form two">
+                <label>Từ cần xét<input id="contextTarget" placeholder="Ví dụ: giành"></label>
+                <label>Gợi ý<input id="contextSuggestion" placeholder="Ví dụ: dành"></label>
+              </div>
+              <div class="admin-form">
+                <label>Mẫu cụm từ<input id="contextPattern" placeholder="Ví dụ: giành thời gian"></label>
+                <label>Giải thích<textarea id="contextExplanation" rows="2" placeholder="Giải thích ngắn gọn cho người dùng"></textarea></label>
+              </div>
+              <div class="admin-form two">
+                <label>Độ ưu tiên<input id="contextPriority" type="number" value="100" min="0" max="10000"></label>
+                <label class="inline-check"><input id="contextActive" type="checkbox" checked> Đang bật</label>
+              </div>
+              <div class="admin-actions">
+                <button class="btn" id="saveContextBtn">Lưu quy tắc</button>
+                <button class="btn secondary" id="cancelContextBtn">Hủy</button>
+                <span class="admin-muted" id="contextFormMsg"></span>
+              </div>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead><tr><th>Mẫu</th><th>Gợi ý</th><th>Giải thích</th><th>Ưu tiên</th><th>Trạng thái</th><th></th></tr></thead>
+                <tbody id="contextRows"></tbody>
+              </table>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0;">
+              <button class="mini-btn" id="contextPrevBtn">← Trước</button>
+              <span class="admin-muted" id="contextPageInfo">Trang 1</span>
+              <button class="mini-btn" id="contextNextBtn">Sau →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 </div>
-<footer>Chạy 100% trên trình duyệt của bạn — không lưu, không gửi dữ liệu đi đâu cả.</footer>
+<footer>Từ điển đồng bộ từ Nhost; nội dung bạn nhập chỉ được kiểm tra ngay trong trình duyệt và không được lưu tự động.</footer>
 
 <script>
 /* =========================================================
@@ -920,7 +1060,7 @@ const DICT = [
   {correct:"chuẩn mực", wrong:"truẩn mực", type:"ch-tr", note:"“chuẩn” = mực thước, khuôn mẫu — viết ch."},
 ];
 
-const ACTIVE = DICT;
+let ACTIVE = DICT.slice();
 
 // Cặp từ CÙNG đúng chính tả nhưng khác nghĩa — chỉ để tham khảo ở tab Từ điển,
 // KHÔNG bị gạch đỏ khi gõ vì cả hai đều là từ hợp lệ, chỉ khác ngữ cảnh dùng.
@@ -937,18 +1077,222 @@ const CONTEXT_PAIRS = [
 ];
 
 const WRONG_MAP = new Map();
-ACTIVE.forEach(e=>{
-  WRONG_MAP.set(e.wrong.toLowerCase(), e);
-});
+function rebuildWrongMap(){
+  WRONG_MAP.clear();
+  ACTIVE.forEach(e=>{
+    if(e.wrong) WRONG_MAP.set(e.wrong.toLowerCase(), e);
+    if(Array.isArray(e.wrongs)) e.wrongs.forEach(w=>WRONG_MAP.set(w.toLowerCase(), e));
+  });
+
+  // Turbo v10: defer worker sync until the current script turn finishes.
+  // This avoids the Temporal Dead Zone when rebuildWrongMap() runs before
+  // `let checkerWorker` has been initialized.
+  if(typeof syncWorkerIndex==='function') queueMicrotask(()=>{
+    try{ syncWorkerIndex(); }catch(err){ console.warn('Worker sync deferred:',err); }
+  });
+}
+rebuildWrongMap();
 
 const TYPE_LABELS = {
-  "s-x":"s / x", "r-d-gi":"r / d / gi", "ch-tr":"ch / tr", "n-l":"n / l", "other":"Cặp từ dễ nhầm"
+  "s-x":"s / x", "r-d-gi":"r / d / gi", "ch-tr":"ch / tr", "n-l":"n / l", "other":"Cặp từ dễ nhầm", "suspect":"Cần xem lại"
 };
 
 document.addEventListener('DOMContentLoaded', ()=>{
   const el = document.getElementById('dictCountLabel');
   if(el) el.textContent = `hơn ${ACTIVE.length} cặp từ thực sự hay bị viết sai`;
 });
+
+
+/* ================= TURBO v7: PHRASE ENGINE + CONTEXT + WORKER CACHE ================= */
+let checkerWorker=null;
+let checkerSeq=0;
+let workerReady=false;
+let compactLexicon=[];
+
+/* Context rules are deliberately conservative.
+   They never auto-correct; they only mark yellow when a very specific phrase strongly suggests a mix-up. */
+const FALLBACK_CONTEXT_RULES = [
+  {target:'giành', patterns:['giành cho','giành thời gian','giành sự quan tâm'], suggest:'dành', note:'Trong nghĩa để riêng/trao cho, thường dùng “dành”. “Giành” thường mang nghĩa tranh lấy.'},
+  {target:'dành', patterns:['dành chiến thắng','dành giải nhất','dành quyền kiểm soát'], suggest:'giành', note:'Trong nghĩa tranh lấy/đạt được qua cạnh tranh, thường dùng “giành”.'},
+  {target:'trở', patterns:['trở hàng','trở khách','trở đồ'], suggest:'chở', note:'Nếu mang nghĩa vận chuyển người hoặc đồ vật, thường dùng “chở”.'},
+  {target:'chở', patterns:['chở thành','chở nên','chở lại'], suggest:'trở', note:'Trong “trở thành / trở nên / trở lại”, dùng “trở”.'},
+  {target:'truyện', patterns:['nói truyện','kể truyện với nhau'], suggest:'chuyện', note:'Nếu mang nghĩa trò chuyện/sự việc, cân nhắc “chuyện”; “truyện” thường là tác phẩm kể chuyện.'},
+  {target:'chuyện', patterns:['đọc chuyện','tác giả chuyện','cuốn chuyện'], suggest:'truyện', note:'Nếu nói về tác phẩm văn học để đọc, thường dùng “truyện”.'}
+];
+let contextRules=[...FALLBACK_CONTEXT_RULES];
+
+function createCheckerWorker(){
+  if(checkerWorker) checkerWorker.terminate();
+  const code=`
+    let wrongMap=new Map(), known=new Set(), accentBuckets=new Map(), confusionBuckets=new Map();
+    let maxWrongTokens=1, contextRules=[];
+    const wordRe=/[A-Za-zÀ-ỹà-ỹĂăÂâÊêÔôƠơƯưĐđ]+/g;
+    const strip=s=>(s||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/đ/g,'d').toLowerCase();
+    const confusion=s=>strip(s)
+      .replace(/^(ch|tr)/,'C').replace(/^(s|x)/,'S').replace(/^(d|gi|r)/,'D').replace(/^(l|n)/,'L');
+    const addBucket=(map,key,val)=>{
+      if(!key)return; let a=map.get(key);
+      if(!a){a=[];map.set(key,a);}
+      if(a.length<8&&!a.includes(val))a.push(val);
+    };
+    const buildLexicon=words=>{
+      known=new Set();accentBuckets=new Map();confusionBuckets=new Map();
+      for(const raw of words||[]){
+        const w=(raw||'').trim().toLowerCase(); if(!w)continue;
+        known.add(w);
+        if(!w.includes(' ')){
+          addBucket(accentBuckets,strip(w),w);
+          addBucket(confusionBuckets,confusion(w),w);
+        }
+      }
+    };
+    const suggestionFor=raw=>{
+      const w=raw.toLowerCase();
+      if(known.has(w)||w.length<3)return null;
+      const a=(accentBuckets.get(strip(w))||[]).filter(x=>x!==w);
+      if(a.length===1)return {correct:a[0],reason:'Khác dấu/đ hoặc cách ghi gần trùng với một từ chuẩn'};
+      const c=(confusionBuckets.get(confusion(w))||[]).filter(x=>x!==w&&strip(x)!==strip(w));
+      if(c.length===1)return {correct:c[0],reason:'Có thể nhầm phụ âm đầu thường gặp'};
+      return null;
+    };
+    const contiguous=(text,a,b)=>/^\\s+$/.test(text.slice(a.end,b.start));
+    const phraseAt=(text,tokens,i,n)=>{
+      if(i+n>tokens.length)return null;
+      for(let k=i;k<i+n-1;k++) if(!contiguous(text,tokens[k],tokens[k+1]))return null;
+      return tokens.slice(i,i+n).map(t=>t.word).join(' ');
+    };
+    const contextHit=(text,tokens,i)=>{
+      const target=tokens[i].word.toLowerCase();
+      for(const r of contextRules){
+        if(r.target!==target)continue;
+        for(const p of r.patterns){
+          const parts=p.split(' ');
+          for(let start=Math.max(0,i-parts.length+1);start<=i;start++){
+            const phrase=phraseAt(text,tokens,start,parts.length);
+            if(phrase&&phrase.toLowerCase()===p){
+              return {correct:r.suggest,wrong:tokens[i].word,type:'context',note:r.note,meaning:'',examples:[],confidence:'context'};
+            }
+          }
+        }
+      }
+      return null;
+    };
+    onmessage=ev=>{
+      const d=ev.data||{};
+      if(d.type==='index'){
+        wrongMap=new Map(d.entries||[]);
+        maxWrongTokens=1;
+        for(const k of wrongMap.keys()) maxWrongTokens=Math.max(maxWrongTokens,Math.min(6,k.trim().split(/\\s+/).length));
+        contextRules=d.contextRules||[];
+        buildLexicon(d.lexicon||[]);
+        postMessage({type:'ready',size:wrongMap.size,lexicon:known.size,maxPhrase:maxWrongTokens});
+        return;
+      }
+      if(d.type==='check'){
+        const text=d.text||'',tokens=[],matches=[];
+        wordRe.lastIndex=0;let m;
+        while((m=wordRe.exec(text))!==null)tokens.push({word:m[0],start:m.index,end:m.index+m[0].length});
+        let i=0;
+        while(i<tokens.length){
+          let hit=null,hitN=0;
+          // Longest match first: supports 1–6 word error phrases without scanning the whole dictionary.
+          for(let n=Math.min(maxWrongTokens,tokens.length-i);n>=1;n--){
+            const phrase=phraseAt(text,tokens,i,n);
+            if(!phrase)continue;
+            const entry=wrongMap.get(phrase.toLowerCase());
+            if(entry){hit={start:tokens[i].start,end:tokens[i+n-1].end,text:phrase,entry:{...entry,confidence:'certain'}};hitN=n;break;}
+          }
+          if(hit){matches.push(hit);i+=hitN;continue;}
+
+          const ctx=contextHit(text,tokens,i);
+          if(ctx){
+            matches.push({start:tokens[i].start,end:tokens[i].end,text:tokens[i].word,entry:ctx});
+          }else if(known.size){
+            const sug=suggestionFor(tokens[i].word);
+            if(sug)matches.push({start:tokens[i].start,end:tokens[i].end,text:tokens[i].word,
+              entry:{correct:sug.correct,wrong:tokens[i].word,type:'suspect',note:sug.reason,meaning:'',examples:[],confidence:'suspect'}});
+          }
+          i++;
+        }
+        postMessage({type:'result',seq:d.seq,matches,ms:performance.now()-d.t0});
+      }
+    };`;
+  checkerWorker=new Worker(URL.createObjectURL(new Blob([code],{type:'text/javascript'})));
+  checkerWorker.onmessage=ev=>{
+    const d=ev.data||{};
+    if(d.type==='ready'){
+      workerReady=true;
+      const p=document.getElementById('perfLine');
+      if(p)p.textContent=`⚡ Worker · ${d.size.toLocaleString('vi-VN')} lỗi · ${d.lexicon.toLocaleString('vi-VN')} từ chuẩn · cụm tối đa ${d.maxPhrase} tiếng`;
+    }else if(d.type==='result'&&d.seq===checkerSeq)applyWorkerMatches(d.matches,d.ms);
+  };
+}
+function syncWorkerIndex(){
+  if(!checkerWorker)createCheckerWorker();
+  const entries=[...WRONG_MAP.entries()];
+  workerReady=false;
+  checkerWorker.postMessage({type:'index',entries,lexicon:compactLexicon,contextRules});
+}
+function checkInWorker(text){
+  if(!workerReady||!checkerWorker)return false;
+  checkerSeq++;
+  checkerWorker.postMessage({type:'check',seq:checkerSeq,text,t0:performance.now()});
+  return true;
+}
+function openCache(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open('chinh-ta-turbo',1);
+    req.onupgradeneeded=()=>req.result.createObjectStore('kv');
+    req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+  });
+}
+async function cacheSet(key,value){
+  try{const db=await openCache();db.transaction('kv','readwrite').objectStore('kv').put(value,key);}catch(e){}
+}
+async function cacheGet(key){
+  try{const db=await openCache();return await new Promise((resolve,reject)=>{
+    const r=db.transaction('kv','readonly').objectStore('kv').get(key);
+    r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+  });}catch(e){return null;}
+}
+async function loadCompactLexicon(){
+  try{
+    const d=await gql(`query CompactLexicon {
+      dictionary_words(where:{is_active:{_eq:true}},limit:50000,order_by:{correct:asc}) { correct }
+    }`);
+    compactLexicon=(d.dictionary_words||[]).map(x=>x.correct).filter(Boolean);
+    await cacheSet('compact-lexicon-v1',compactLexicon);
+    syncWorkerIndex();
+    return compactLexicon.length;
+  }catch(err){console.warn('Compact lexicon refresh skipped',err);return compactLexicon.length;}
+}
+
+
+async function loadContextRules(){
+  try{
+    const d=await gql(`query ContextRules {
+      context_rules(where:{is_active:{_eq:true}},order_by:[{priority:desc},{target:asc}]) {
+        id target pattern suggestion explanation confidence priority
+      }
+    }`);
+    const rows=d.context_rules||[];
+    if(rows.length){
+      const grouped=new Map();
+      for(const r of rows){
+        const key=[r.target,r.suggestion,r.explanation||'',r.confidence||'context'].join('\u0001');
+        if(!grouped.has(key)) grouped.set(key,{target:r.target,patterns:[],suggest:r.suggestion,note:r.explanation||'',confidence:r.confidence||'context'});
+        grouped.get(key).patterns.push(r.pattern);
+      }
+      contextRules=[...grouped.values()];
+      await cacheSet('context-rules-v1',contextRules);
+      syncWorkerIndex();
+    }
+    return contextRules.length;
+  }catch(err){
+    console.warn('Context rules refresh skipped',err);
+    return contextRules.length;
+  }
+}
 
 /* ================= CHECKER LOGIC (real-time) ================= */
 const editor = document.getElementById('editor');
@@ -1044,37 +1388,49 @@ function getPlainText(){
   return editor.textContent;
 }
 
+function paintMatches(text,matches,preserveCaret,workerMs=null){
+  const caret=preserveCaret ? getCaretOffset(editor) : null;
+  lastMatches=matches;
+  let html='',cursor=0;
+  for(let idx=0;idx<lastMatches.length;idx++){
+    const mt=lastMatches[idx];
+    html+=escapeHtml(text.slice(cursor,mt.start));
+    const level=mt.entry?.confidence==='suspect'?' suspect':(mt.entry?.confidence==='context'?' context':'');
+    html+=`<span class="flag${level}" data-idx="${idx}">${escapeHtml(mt.text)}</span>`;
+    cursor=mt.end;
+  }
+  html+=escapeHtml(text.slice(cursor));
+  editor.innerHTML=html;
+  if(caret!==null) setCaretOffset(editor,caret);
+  fixAllBtn.style.display=lastMatches.length?'inline-block':'none';
+  const certain=lastMatches.filter(x=>x.entry?.confidence!=='suspect' && x.entry?.confidence!=='context').length;
+  const suspect=lastMatches.filter(x=>x.entry?.confidence==='suspect').length;
+  const context=lastMatches.filter(x=>x.entry?.confidence==='context').length;
+  statLine.innerHTML=lastMatches.length
+    ? `Phát hiện <b>${certain}</b> lỗi chắc chắn${suspect?` · <b>${suspect}</b> nghi ngờ`:''}${context?` · <b>${context}</b> cần xét ngữ cảnh`:''} — đỏ = chắc chắn, cam = nghi ngờ, vàng = ngữ cảnh.`
+    : (text.trim()?'✅ Chưa thấy lỗi nào trong phạm vi dữ liệu hiện có.':'');
+  const p=document.getElementById('perfLine');
+  if(p && workerMs!==null) p.textContent=`⚡ Kiểm tra nền ${workerMs.toFixed(1)} ms · ${text.length.toLocaleString('vi-VN')} ký tự`;
+}
+let pendingRender={text:'',preserveCaret:false};
+function applyWorkerMatches(matches,ms){
+  // Ignore stale worker results when the editor has changed meanwhile.
+  if(getPlainText()!==pendingRender.text) return;
+  paintMatches(pendingRender.text,matches,pendingRender.preserveCaret,ms);
+}
 function renderResult(preserveCaret){
-  const text = getPlainText();
-  const caret = preserveCaret ? getCaretOffset(editor) : null;
-
-  lastMatches = findMatches(text);
-  let html = '';
-  let cursor = 0;
-  lastMatches.forEach((mt, idx)=>{
-    html += escapeHtml(text.slice(cursor, mt.start));
-    html += `<span class="flag" data-idx="${idx}">${escapeHtml(mt.text)}</span>`;
-    cursor = mt.end;
-  });
-  html += escapeHtml(text.slice(cursor));
-  editor.innerHTML = html;
-
-  if(caret !== null){
-    setCaretOffset(editor, caret);
-  }
-
-  fixAllBtn.style.display = lastMatches.length ? 'inline-block' : 'none';
-  if(lastMatches.length === 0){
-    statLine.innerHTML = text.trim() ? '✅ Chưa thấy lỗi nào trong từ điển của mình!' : '';
-  } else {
-    statLine.innerHTML = `Tìm thấy <b>${lastMatches.length}</b> chỗ nghi ngờ — chạm vào từ đỏ để xem gợi ý.`;
-  }
+  const text=getPlainText();
+  pendingRender={text,preserveCaret};
+  if(!checkInWorker(text)) paintMatches(text,findMatches(text),preserveCaret,null);
 }
 
 editor.addEventListener('input', ()=>{
   closePopover();
   clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(()=> renderResult(true), isTouch ? 550 : 350);
+  // Adaptive debounce: short text feels instant; very long pasted documents avoid UI churn.
+  const n=getPlainText().length;
+  const delay=n>50000?450:n>15000?260:n>4000?150:90;
+  debounceTimer=setTimeout(()=>renderResult(true),delay);
 });
 
 editor.addEventListener('keydown', (e)=>{
@@ -1093,10 +1449,15 @@ function openPopoverForFlag(flag){
   const pop = document.createElement('div');
   pop.className = 'popover';
   const corrected = preserveCase(mt.text.split(' ')[0], entry.correct);
+  const meaningHtml = entry.meaning ? `<div class="note"><b>Nghĩa:</b> ${escapeHtml(entry.meaning)}</div>` : '';
+  const examples = Array.isArray(entry.examples) ? entry.examples : [];
+  const examplesHtml = examples.length ? `<div class="note"><b>Ví dụ:</b><br>${examples.slice(0,3).map(x=>'• '+escapeHtml(x)).join('<br>')}</div>` : '';
   pop.innerHTML = `
     <button class="close" aria-label="Đóng">✕</button>
-    <div class="correct">${escapeHtml(corrected)}</div>
+    <div class="correct">✓ ${escapeHtml(corrected)}</div>
+    ${meaningHtml}
     <div class="note">${escapeHtml(entry.note || '')}</div>
+    ${examplesHtml}
     <button class="apply-one">Sửa từ này</button>
   `;
   document.body.appendChild(pop);
@@ -1242,7 +1603,8 @@ function renderDict(){
     `).join('');
     return;
   }
-  const list = activeType==='all' ? ACTIVE : ACTIVE.filter(e=>e.type===activeType);
+  const fullList = activeType==='all' ? ACTIVE : ACTIVE.filter(e=>e.type===activeType);
+  const list = fullList.slice(0, 300);
   dictGrid.innerHTML = list.map(e=>`
     <div class="dict-card">
       <div class="cat-tag">${TYPE_LABELS[e.type]}</div>
@@ -1252,7 +1614,7 @@ function renderDict(){
       </div>
       <div class="note">${escapeHtml(e.note)}</div>
     </div>
-  `).join('');
+  `).join('') + (fullList.length>300 ? `<div class="dict-card"><div class="note">Đang hiển thị 300/${fullList.length} mục để giữ giao diện mượt. Dùng ô tìm kiếm/quản trị để tra thêm.</div></div>` : '');
 }
 renderDict();
 
@@ -1389,6 +1751,473 @@ function submitSelectGame(){
 sgSubmitBtn.addEventListener('click', submitSelectGame);
 sgNewBtn.addEventListener('click', newSelectGameRound);
 sgAgainBtn.addEventListener('click', newSelectGameRound);
+
+
+/* ================= NHOST DICTIONARY + ADMIN ================= */
+const NHOST = {
+  subdomain: 'yuprdhhnuuskxlvfjggm',
+  region: 'ap-southeast-1'
+};
+NHOST.graphqlUrl = `https://${NHOST.subdomain}.graphql.${NHOST.region}.nhost.run/v1`;
+NHOST.authUrl = `https://${NHOST.subdomain}.auth.${NHOST.region}.nhost.run/v1`;
+let nhostSession = null;
+let remoteWords = [];
+
+async function gql(query, variables={}, authenticated=false){
+  const headers = {'Content-Type':'application/json'};
+  if(authenticated && nhostSession?.accessToken) headers.Authorization = `Bearer ${nhostSession.accessToken}`;
+  const res = await fetch(NHOST.graphqlUrl, {method:'POST', headers, body:JSON.stringify({query,variables})});
+  const body = await res.json().catch(()=>({}));
+  if(!res.ok || body.errors) throw new Error(body.errors?.[0]?.message || `GraphQL ${res.status}`);
+  return body.data;
+}
+
+function combineRemoteDictionary(words, variants, examples){
+  const byId = new Map(words.map(w=>[w.id,{...w, wrongs:[], examples:[]}]))
+  variants.forEach(v=>{ const w=byId.get(v.dictionary_word_id); if(w) w.wrongs.push(v.wrong); });
+  examples.forEach(ex=>{ const w=byId.get(ex.dictionary_word_id); if(w) w.examples.push(ex.example); });
+  const entries=[];
+  for(const w of byId.values()){
+    if(!w.is_active) continue;
+    (w.wrongs||[]).forEach(wrong=>entries.push({
+      id:w.id, correct:w.correct, wrong, wrongs:w.wrongs, type:w.type||'other',
+      note:w.note||'', meaning:w.meaning||'', examples:w.examples||[]
+    }));
+  }
+  return entries;
+}
+
+async function loadDictionaryFromNhost(){
+  // PERFORMANCE v3:
+  // Checker KHÔNG tải 30.000 từ + 30.000 ví dụ.
+  // Chỉ tải các biến thể sai trước, sau đó lấy đúng những mục từ liên quan.
+  const status=document.getElementById('dbStatus');
+  try{
+    const vdata=await gql(`query CheckerVariants {
+      word_variants(order_by:{wrong:asc}) { id dictionary_word_id wrong is_common }
+    }`);
+    const variants=vdata.word_variants||[];
+    const ids=[...new Set(variants.map(v=>v.dictionary_word_id).filter(Boolean))];
+
+    if(!ids.length){
+      if(status) status.innerHTML=`<span class="db-badge db-ok">● Đã kết nối Nhost</span> · chưa có biến thể lỗi`;
+      return true;
+    }
+
+    const data=await gql(`query CheckerWords($ids:[uuid!]!) {
+      dictionary_words(where:{id:{_in:$ids},is_active:{_eq:true}}) {
+        id correct meaning type note is_active
+      }
+      word_examples(where:{dictionary_word_id:{_in:$ids}},limit:1500) {
+        id dictionary_word_id example explanation
+      }
+    }`,{ids});
+
+    const words=data.dictionary_words||[];
+    const examples=data.word_examples||[];
+
+    // O(n): lập chỉ mục một lần. Bản cũ filter toàn bộ variants/examples cho TỪNG từ => O(n²).
+    const byId=new Map(words.map(w=>[w.id,{...w,wrongs:[],examples:[]}]));
+    for(const v of variants){
+      const w=byId.get(v.dictionary_word_id);
+      if(w) w.wrongs.push(v.wrong);
+    }
+    for(const ex of examples){
+      const w=byId.get(ex.dictionary_word_id);
+      if(w && w.examples.length<3) w.examples.push(ex.example);
+    }
+
+    remoteWords=[...byId.values()];
+    const remoteActive=[];
+    for(const w of remoteWords){
+      for(const wrong of w.wrongs){
+        remoteActive.push({
+          id:w.id,correct:w.correct,wrong,wrongs:w.wrongs,type:w.type||'other',
+          note:w.note||'',meaning:w.meaning||'',examples:w.examples||[]
+        });
+      }
+    }
+
+    if(remoteActive.length){
+      ACTIVE=remoteActive;
+      cacheSet('checker-active-v1',remoteActive);
+      rebuildWrongMap();
+      renderDictFilters();
+      renderDict();
+      renderResult(false);
+    }
+    const label=document.getElementById('dictCountLabel');
+    if(label) label.textContent=`${remoteActive.length} lỗi đã lập chỉ mục · kho từ Nhost tải theo nhu cầu`;
+    if(status) status.innerHTML=`<span class="db-badge db-ok">● Nhost Turbo</span> · ${remoteActive.length} lỗi sẵn sàng`;
+    return true;
+  }catch(err){
+    console.warn('Nhost dictionary unavailable, using embedded fallback.',err);
+    if(status) status.innerHTML=`<span class="db-badge db-warn">● Chưa đọc được Nhost</span> · đang dùng từ điển nhúng (${ACTIVE.length} cặp)`;
+    return false;
+  }
+}
+
+function renderDictFilters(){
+  if(!dictFilters) return;
+  dictFilters.innerHTML='';
+  const types=['all', ...Object.keys(TYPE_LABELS), 'context'];
+  types.forEach(t=>{
+    const chip=document.createElement('button');
+    chip.className='chip'+(t===activeType?' active':'');
+    if(t==='all') chip.textContent=`Tất cả (${ACTIVE.length})`;
+    else if(t==='context') chip.textContent=`Dễ lẫn nghĩa (${CONTEXT_PAIRS.length})`;
+    else chip.textContent=TYPE_LABELS[t]+` (${ACTIVE.filter(e=>e.type===t).length})`;
+    chip.addEventListener('click',()=>{activeType=t;renderDictFilters();renderDict();});
+    dictFilters.appendChild(chip);
+  });
+}
+
+// Rebuild the original static filters with a function so counts can refresh after Nhost sync.
+if(dictFilters){ renderDictFilters(); }
+
+async function adminSignIn(email,password){
+  const res=await fetch(`${NHOST.authUrl}/signin/email-password`,{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})
+  });
+  const body=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(body.message || body.error || `Đăng nhập thất bại (${res.status})`);
+  const session=body.session || body;
+  if(!session.accessToken) throw new Error('Không nhận được access token. Tài khoản có thể đang bật MFA.');
+  nhostSession=session;
+  return session;
+}
+
+function showAdminApp(on){
+  document.getElementById('adminLoginBox').style.display=on?'none':'block';
+  document.getElementById('adminApp').style.display=on?'block':'none';
+  document.getElementById('adminLogoutBtn').style.display=on?'inline-block':'none';
+}
+
+const ADMIN_PAGE_SIZE=50;
+let adminPage=0;
+let adminRows=[];
+let adminTotal=0;
+let adminRequestSeq=0;
+
+async function loadAdminPage(resetPage=false){
+  if(resetPage) adminPage=0;
+  const tbody=document.getElementById('adminWordRows');
+  if(!tbody || !nhostSession?.accessToken) return;
+  const seq=++adminRequestSeq;
+  const q=(document.getElementById('adminSearch')?.value||'').trim();
+  tbody.innerHTML=`<tr><td colspan="5" class="admin-muted">Đang tải dữ liệu…</td></tr>`;
+  try{
+    const where=q ? {_or:[
+      {correct:{_ilike:`%${q}%`}},
+      {meaning:{_ilike:`%${q}%`}},
+      {note:{_ilike:`%${q}%`}},
+      {word_variants:{wrong:{_ilike:`%${q}%`}}}
+    ]} : {};
+    const data=await gql(`query AdminWords($limit:Int!,$offset:Int!,$where:dictionary_words_bool_exp!){
+      dictionary_words(limit:$limit,offset:$offset,where:$where,order_by:{correct:asc}){
+        id correct meaning type note is_active
+        word_variants(limit:20,order_by:{wrong:asc}){wrong}
+        word_examples(limit:5,order_by:{created_at:asc}){example}
+      }
+      dictionary_words_aggregate(where:$where){aggregate{count}}
+    }`,{limit:ADMIN_PAGE_SIZE,offset:adminPage*ADMIN_PAGE_SIZE,where},true);
+    if(seq!==adminRequestSeq) return;
+    adminRows=(data.dictionary_words||[]).map(w=>({
+      ...w,
+      wrongs:(w.word_variants||[]).map(v=>v.wrong),
+      examples:(w.word_examples||[]).map(e=>e.example)
+    }));
+    adminTotal=data.dictionary_words_aggregate?.aggregate?.count||0;
+    renderAdminRows();
+  }catch(err){
+    tbody.innerHTML=`<tr><td colspan="5" class="admin-muted">Lỗi tải dữ liệu: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function renderAdminRows(){
+  const tbody=document.getElementById('adminWordRows');
+  if(!tbody) return;
+  tbody.innerHTML=adminRows.length?adminRows.map(w=>`<tr>
+    <td><b>${escapeHtml(w.correct||'')}</b><br><span class="admin-muted">${escapeHtml(w.meaning||'')}</span></td>
+    <td>${(w.wrongs||[]).map(x=>`<span style="display:block">${escapeHtml(x)}</span>`).join('')||'<span class="admin-muted">—</span>'}</td>
+    <td>${escapeHtml(TYPE_LABELS[w.type]||w.type||'Khác')}</td>
+    <td><span class="admin-pill ${w.is_active?'':'off'}">${w.is_active?'Đang dùng':'Tạm tắt'}</span></td>
+    <td style="white-space:nowrap"><button class="mini-btn" data-edit="${w.id}">Sửa</button><button class="mini-btn danger" data-delete="${w.id}">Xóa</button></td>
+  </tr>`).join(''):`<tr><td colspan="5" class="admin-muted">Không có mục từ phù hợp.</td></tr>`;
+  const pages=Math.max(1,Math.ceil(adminTotal/ADMIN_PAGE_SIZE));
+  const info=document.getElementById('adminPageInfo');
+  if(info) info.textContent=`Trang ${adminPage+1}/${pages} · ${adminTotal.toLocaleString('vi-VN')} mục`;
+  const prev=document.getElementById('adminPrevBtn'), next=document.getElementById('adminNextBtn');
+  if(prev) prev.disabled=adminPage<=0;
+  if(next) next.disabled=(adminPage+1)*ADMIN_PAGE_SIZE>=adminTotal;
+}
+function openWordForm(word=null){
+  document.getElementById('wordFormCard').style.display='block';
+  document.getElementById('wordFormTitle').textContent=word?'Sửa mục từ':'Thêm từ mới';
+  document.getElementById('wordId').value=word?.id||'';
+  document.getElementById('wordCorrect').value=word?.correct||'';
+  document.getElementById('wordType').value=word?.type||'other';
+  document.getElementById('wordMeaning').value=word?.meaning||'';
+  document.getElementById('wordNote').value=word?.note||'';
+  document.getElementById('wordWrong').value=(word?.wrongs||[]).join('\n');
+  document.getElementById('wordExamples').value=(word?.examples||[]).join('\n');
+  document.getElementById('wordActive').checked=word?.is_active!==false;
+  document.getElementById('wordFormMsg').textContent='';
+  document.getElementById('wordCorrect').focus();
+  document.getElementById('wordFormCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function closeWordForm(){document.getElementById('wordFormCard').style.display='none';}
+
+async function saveWord(){
+  const msg=document.getElementById('wordFormMsg');
+  const btn=document.getElementById('saveWordBtn');
+  const id=document.getElementById('wordId').value||null;
+  const correct=document.getElementById('wordCorrect').value.trim();
+  const type=document.getElementById('wordType').value;
+  const meaning=document.getElementById('wordMeaning').value.trim();
+  const note=document.getElementById('wordNote').value.trim();
+  const is_active=document.getElementById('wordActive').checked;
+  const wrongs=[...new Set(document.getElementById('wordWrong').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean))];
+  const examples=[...new Set(document.getElementById('wordExamples').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean))];
+  if(!correct){msg.textContent='Cần nhập từ đúng.';return}
+  if(!wrongs.length){msg.textContent='Cần ít nhất một cách viết sai.';return}
+  btn.disabled=true;msg.textContent='Đang lưu…';
+  try{
+    let wordId=id;
+    if(id){
+      await gql(`mutation UpdateWord($id:uuid!,$set:dictionary_words_set_input!){update_dictionary_words_by_pk(pk_columns:{id:$id},_set:$set){id}}`,{id,set:{correct,type,meaning,note,is_active}},true);
+      await gql(`mutation ResetChildren($id:uuid!){delete_word_variants(where:{dictionary_word_id:{_eq:$id}}){affected_rows} delete_word_examples(where:{dictionary_word_id:{_eq:$id}}){affected_rows}}`,{id},true);
+    }else{
+      const d=await gql(`mutation AddWord($object:dictionary_words_insert_input!){insert_dictionary_words_one(object:$object){id}}`,{object:{correct,type,meaning,note,is_active}},true);
+      wordId=d.insert_dictionary_words_one.id;
+    }
+    await gql(`mutation AddChildren($variants:[word_variants_insert_input!]!,$examples:[word_examples_insert_input!]!){insert_word_variants(objects:$variants){affected_rows} insert_word_examples(objects:$examples){affected_rows}}`,{
+      variants:wrongs.map(wrong=>({dictionary_word_id:wordId,wrong,is_common:true})),
+      examples:examples.map(example=>({dictionary_word_id:wordId,example,explanation:''}))
+    },true);
+    msg.textContent='✓ Đã lưu';
+    await Promise.all([loadDictionaryFromNhost(),loadAdminPage(false)]);
+    setTimeout(closeWordForm,500);
+  }catch(err){msg.textContent='Lỗi: '+err.message;}
+  finally{btn.disabled=false;}
+}
+
+async function deleteWord(id){
+  const w=adminRows.find(x=>x.id===id) || remoteWords.find(x=>x.id===id); if(!w) return;
+  if(!confirm(`Xóa mục từ “${w.correct}” và toàn bộ biến thể/ví dụ?`)) return;
+  try{
+    await gql(`mutation DeleteWord($id:uuid!){delete_word_variants(where:{dictionary_word_id:{_eq:$id}}){affected_rows} delete_word_examples(where:{dictionary_word_id:{_eq:$id}}){affected_rows} delete_dictionary_words_by_pk(id:$id){id}}`,{id},true);
+    await Promise.all([loadDictionaryFromNhost(),loadAdminPage(false)]);
+  }catch(err){alert('Không xóa được: '+err.message);}
+}
+
+const adminLoginBtn=document.getElementById('adminLoginBtn');
+if(adminLoginBtn) adminLoginBtn.addEventListener('click',async()=>{
+  const msg=document.getElementById('adminLoginMsg');
+  adminLoginBtn.disabled=true;msg.textContent='Đang đăng nhập…';
+  try{
+    await adminSignIn(document.getElementById('adminEmail').value.trim(),document.getElementById('adminPassword').value);
+    msg.textContent='';showAdminApp(true);await Promise.all([loadAdminPage(true),loadContextAdminPage(true)]);
+  }catch(err){msg.textContent=err.message;}
+  finally{adminLoginBtn.disabled=false;}
+});
+document.getElementById('adminPassword')?.addEventListener('keydown',e=>{if(e.key==='Enter')adminLoginBtn?.click()});
+document.getElementById('adminLogoutBtn')?.addEventListener('click',()=>{nhostSession=null;showAdminApp(false)});
+document.getElementById('newWordBtn')?.addEventListener('click',()=>openWordForm());
+document.getElementById('closeWordFormBtn')?.addEventListener('click',closeWordForm);
+document.getElementById('cancelWordBtn')?.addEventListener('click',closeWordForm);
+document.getElementById('saveWordBtn')?.addEventListener('click',saveWord);
+let adminSearchTimer=null;
+document.getElementById('adminSearch')?.addEventListener('input',()=>{
+  clearTimeout(adminSearchTimer);
+  adminSearchTimer=setTimeout(()=>loadAdminPage(true),300);
+});
+document.getElementById('adminPrevBtn')?.addEventListener('click',()=>{if(adminPage>0){adminPage--;loadAdminPage(false);}});
+document.getElementById('adminNextBtn')?.addEventListener('click',()=>{if((adminPage+1)*ADMIN_PAGE_SIZE<adminTotal){adminPage++;loadAdminPage(false);}});
+document.getElementById('adminWordRows')?.addEventListener('click',e=>{
+  const edit=e.target.closest('[data-edit]'); const del=e.target.closest('[data-delete]');
+  if(edit){openWordForm(adminRows.find(w=>w.id===edit.dataset.edit));}
+  if(del){deleteWord(del.dataset.delete);}
+});
+
+
+
+/* ================= TURBO v10: DIAGNOSTICS ================= */
+function waitForWorkerCheck(text,timeout=2500){
+  return new Promise((resolve,reject)=>{
+    if(!checkerWorker || !workerReady) return reject(new Error('Worker chưa sẵn sàng'));
+    const seq=++checkerSeq;
+    const old=checkerWorker.onmessage;
+    const timer=setTimeout(()=>{checkerWorker.onmessage=old;reject(new Error('Worker timeout'));},timeout);
+    checkerWorker.onmessage=(ev)=>{
+      const d=ev.data||{};
+      if(d.type==='result' && d.seq===seq){
+        clearTimeout(timer);checkerWorker.onmessage=old;resolve(d);
+      }else if(old){old.call(checkerWorker,ev);}
+    };
+    checkerWorker.postMessage({type:'check',seq,text,t0:performance.now()});
+  });
+}
+async function runDiagnostics(){
+  const box=document.getElementById('diagnosticsResult');
+  const btn=document.getElementById('runDiagnosticsBtn');
+  if(!box)return;
+  btn.disabled=true; box.textContent='Đang kiểm tra…';
+  const rows=[];
+  const push=(ok,name,detail)=>rows.push({ok,name,detail});
+  try{
+    push(!!checkerWorker,'Web Worker',checkerWorker?'Đã khởi tạo':'Chưa khởi tạo');
+    push(workerReady,'Worker ready',workerReady?'Sẵn sàng':'Chưa nhận chỉ mục');
+    push(WRONG_MAP.size>0,'Chỉ mục lỗi',`${WRONG_MAP.size.toLocaleString('vi-VN')} biến thể`);
+    push(compactLexicon.length>0,'Kho từ chuẩn',`${compactLexicon.length.toLocaleString('vi-VN')} mục`);
+    const cached=await cacheGet('checker-active-v1');
+    push(Array.isArray(cached)&&cached.length>0,'IndexedDB cache',
+      Array.isArray(cached)?`${cached.length.toLocaleString('vi-VN')} mục`:'Chưa có cache');
+
+    if(workerReady){
+      const sample=[...WRONG_MAP.keys()][0];
+      if(sample){
+        const d=await waitForWorkerCheck(`Đây là ${sample}.`);
+        push((d.matches||[]).length>0,'Bắt lỗi đã biết',
+          `${(d.matches||[]).length} kết quả · ${Number(d.ms||0).toFixed(1)} ms`);
+      }
+      const longText=('Hôm nay các em luyện viết chính tả thật cẩn thận. ').repeat(1000);
+      const d2=await waitForWorkerCheck(longText,5000);
+      push(true,'Stress test ~50.000 ký tự',
+        `${longText.length.toLocaleString('vi-VN')} ký tự · ${Number(d2.ms||0).toFixed(1)} ms`);
+    }
+  }catch(err){
+    push(false,'Kiểm tra runtime',err.message);
+  }
+  box.innerHTML=rows.map(r=>`<div>${r.ok?'✅':'❌'} <b>${escapeHtml(r.name)}</b> — ${escapeHtml(String(r.detail))}</div>`).join('');
+  btn.disabled=false;
+}
+document.getElementById('runDiagnosticsBtn')?.addEventListener('click',runDiagnostics);
+
+/* ================= TURBO v9: CONTEXT ADMIN ================= */
+const CONTEXT_PAGE_SIZE=30;
+let contextAdminPage=0, contextAdminTotal=0, contextAdminRows=[], contextReqSeq=0;
+
+async function loadContextAdminPage(reset=false){
+  if(reset) contextAdminPage=0;
+  const tbody=document.getElementById('contextRows');
+  if(!tbody || !nhostSession?.accessToken) return;
+  const seq=++contextReqSeq;
+  const q=(document.getElementById('contextSearch')?.value||'').trim();
+  tbody.innerHTML='<tr><td colspan="6" class="admin-muted">Đang tải…</td></tr>';
+  try{
+    const where=q?{_or:[
+      {target:{_ilike:`%${q}%`}},{pattern:{_ilike:`%${q}%`}},
+      {suggestion:{_ilike:`%${q}%`}},{explanation:{_ilike:`%${q}%`}}
+    ]}:{};
+    const d=await gql(`query AdminContext($limit:Int!,$offset:Int!,$where:context_rules_bool_exp!){
+      context_rules(limit:$limit,offset:$offset,where:$where,order_by:[{priority:desc},{pattern:asc}]){
+        id target pattern suggestion explanation confidence priority is_active
+      }
+      context_rules_aggregate(where:$where){aggregate{count}}
+    }`,{limit:CONTEXT_PAGE_SIZE,offset:contextAdminPage*CONTEXT_PAGE_SIZE,where},true);
+    if(seq!==contextReqSeq)return;
+    contextAdminRows=d.context_rules||[];
+    contextAdminTotal=d.context_rules_aggregate?.aggregate?.count||0;
+    renderContextAdminRows();
+  }catch(err){tbody.innerHTML=`<tr><td colspan="6" class="admin-muted">Lỗi: ${escapeHtml(err.message)}</td></tr>`;}
+}
+function renderContextAdminRows(){
+  const tbody=document.getElementById('contextRows'); if(!tbody)return;
+  tbody.innerHTML=contextAdminRows.length?contextAdminRows.map(r=>`<tr>
+    <td><b>${escapeHtml(r.pattern)}</b><br><span class="admin-muted">${escapeHtml(r.target)}</span></td>
+    <td>${escapeHtml(r.suggestion)}</td>
+    <td>${escapeHtml(r.explanation||'')}</td>
+    <td>${r.priority??100}</td>
+    <td><span class="admin-pill ${r.is_active?'':'off'}">${r.is_active?'Đang bật':'Tạm tắt'}</span></td>
+    <td style="white-space:nowrap"><button class="mini-btn" data-ctx-edit="${r.id}">Sửa</button><button class="mini-btn danger" data-ctx-delete="${r.id}">Xóa</button></td>
+  </tr>`).join(''):'<tr><td colspan="6" class="admin-muted">Chưa có quy tắc.</td></tr>';
+  const pages=Math.max(1,Math.ceil(contextAdminTotal/CONTEXT_PAGE_SIZE));
+  document.getElementById('contextPageInfo').textContent=`Trang ${contextAdminPage+1}/${pages} · ${contextAdminTotal.toLocaleString('vi-VN')} quy tắc`;
+  document.getElementById('contextPrevBtn').disabled=contextAdminPage<=0;
+  document.getElementById('contextNextBtn').disabled=(contextAdminPage+1)*CONTEXT_PAGE_SIZE>=contextAdminTotal;
+}
+function openContextForm(r=null){
+  document.getElementById('contextFormCard').style.display='block';
+  document.getElementById('contextId').value=r?.id||'';
+  document.getElementById('contextTarget').value=r?.target||'';
+  document.getElementById('contextPattern').value=r?.pattern||'';
+  document.getElementById('contextSuggestion').value=r?.suggestion||'';
+  document.getElementById('contextExplanation').value=r?.explanation||'';
+  document.getElementById('contextPriority').value=r?.priority??100;
+  document.getElementById('contextActive').checked=r?.is_active!==false;
+  document.getElementById('contextFormMsg').textContent='';
+}
+function closeContextForm(){document.getElementById('contextFormCard').style.display='none';}
+async function saveContextRule(){
+  const id=document.getElementById('contextId').value||null;
+  const object={
+    target:document.getElementById('contextTarget').value.trim().toLowerCase(),
+    pattern:document.getElementById('contextPattern').value.trim().toLowerCase(),
+    suggestion:document.getElementById('contextSuggestion').value.trim().toLowerCase(),
+    explanation:document.getElementById('contextExplanation').value.trim(),
+    confidence:'context',
+    priority:parseInt(document.getElementById('contextPriority').value||'100',10),
+    is_active:document.getElementById('contextActive').checked
+  };
+  const msg=document.getElementById('contextFormMsg');
+  if(!object.target||!object.pattern||!object.suggestion){msg.textContent='Cần nhập từ cần xét, mẫu và gợi ý.';return;}
+  msg.textContent='Đang lưu…';
+  try{
+    if(id) await gql(`mutation UpdateContext($id:uuid!,$set:context_rules_set_input!){update_context_rules_by_pk(pk_columns:{id:$id},_set:$set){id}}`,{id,set:object},true);
+    else await gql(`mutation AddContext($object:context_rules_insert_input!){insert_context_rules_one(object:$object){id}}`,{object},true);
+    msg.textContent='✓ Đã lưu';
+    await Promise.all([loadContextAdminPage(false),loadContextRules()]);
+    setTimeout(closeContextForm,350);
+  }catch(err){msg.textContent='Lỗi: '+err.message;}
+}
+async function deleteContextRule(id){
+  const r=contextAdminRows.find(x=>x.id===id); if(!r)return;
+  if(!confirm(`Xóa quy tắc “${r.pattern}” → “${r.suggestion}”?`))return;
+  try{
+    await gql(`mutation DeleteContext($id:uuid!){delete_context_rules_by_pk(id:$id){id}}`,{id},true);
+    await Promise.all([loadContextAdminPage(false),loadContextRules()]);
+  }catch(err){alert('Không xóa được: '+err.message);}
+}
+document.getElementById('newContextBtn')?.addEventListener('click',()=>openContextForm());
+document.getElementById('cancelContextBtn')?.addEventListener('click',closeContextForm);
+document.getElementById('saveContextBtn')?.addEventListener('click',saveContextRule);
+let contextSearchTimer=null;
+document.getElementById('contextSearch')?.addEventListener('input',()=>{
+  clearTimeout(contextSearchTimer);contextSearchTimer=setTimeout(()=>loadContextAdminPage(true),300);
+});
+document.getElementById('contextPrevBtn')?.addEventListener('click',()=>{if(contextAdminPage>0){contextAdminPage--;loadContextAdminPage();}});
+document.getElementById('contextNextBtn')?.addEventListener('click',()=>{if((contextAdminPage+1)*CONTEXT_PAGE_SIZE<contextAdminTotal){contextAdminPage++;loadContextAdminPage();}});
+document.getElementById('contextRows')?.addEventListener('click',e=>{
+  const ed=e.target.closest('[data-ctx-edit]'),del=e.target.closest('[data-ctx-delete]');
+  if(ed)openContextForm(contextAdminRows.find(x=>x.id===ed.dataset.ctxEdit));
+  if(del)deleteContextRule(del.dataset.ctxDelete);
+});
+
+(async()=>{
+  try{ createCheckerWorker(); }catch(err){ console.warn('Không khởi tạo được Worker, sẽ dùng fallback:',err); }
+  const [cached,cachedLexicon,cachedContext]=await Promise.all([
+    cacheGet('checker-active-v1'),
+    cacheGet('compact-lexicon-v1'),
+    cacheGet('context-rules-v1')
+  ]);
+  if(Array.isArray(cachedLexicon)) compactLexicon=cachedLexicon;
+  if(Array.isArray(cachedContext) && cachedContext.length) contextRules=cachedContext;
+  if(Array.isArray(cached) && cached.length){
+    ACTIVE=cached;
+    rebuildWrongMap();
+    renderDictFilters();
+    renderDict();
+    renderResult(false);
+    const st=document.getElementById('dbStatus');
+    if(st) st.innerHTML=`<span class="db-badge db-ok">● Cache Turbo</span> · ${cached.length} lỗi sẵn sàng tức thì`;
+  }else{
+    syncWorkerIndex();
+  }
+  // Refresh quietly after cached data is already usable.
+  Promise.allSettled([loadDictionaryFromNhost(),loadCompactLexicon(),loadContextRules()]);
+})();
+
 </script>
 </body>
 </html>
