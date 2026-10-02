@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chính Tả Full V4.2.2 Lean DB — Sổ Tay Chính Tả — Nhost Dictionary v2</title>
+<title>Chính Tả Full V5.4 Context Deep — Sổ Tay Chính Tả — Nhost Dictionary v2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Be+Vietnam+Pro:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <style>
@@ -1852,7 +1852,7 @@ function makeIssue(kind,start,end,text,data={}){return {kind,start,end,text,...d
 const TONES=['\u0300','\u0301','\u0309','\u0303','\u0323'];
 const SYL_RE=/^(ngh|ng|nh|ph|th|tr|ch|kh|gh|gi|qu|[bcdđghklmnpqrstvx]?)([aăâeêioôơuưy]+)(ng|nh|ch|c|t|n|m|p)?$/;
 const INI_SWAP={s:['x'],x:['s'],ch:['tr'],tr:['ch'],d:['gi','r'],gi:['d','r'],r:['d','gi'],l:['n'],n:['l']};
-const FIN_SWAP={n:['ng','nh'],ng:['n','nh'],nh:['n','ng'],c:['t'],t:['c']};
+const FIN_SWAP={n:['ng','nh'],ng:['n','nh'],nh:['n','ng'],c:['t','ch'],t:['c','ch'],ch:['t','c']};
 function splitTone(s){
   let tone='',b='';
   for(const ch of s.normalize('NFD')){ if(TONES.includes(ch))tone=ch; else b+=ch; }
@@ -1868,7 +1868,7 @@ function withTone(plain,tone){ // trả về các cách đặt dấu có thể (
   }
   return out;
 }
-const VOW_SWAP={'ư':['u'],'u':['ư'],'ơ':['o','ô'],'ô':['o','ơ'],'o':['ơ','ô'],'ê':['e'],'e':['ê'],'â':['a','ă'],'ă':['a','â'],'a':['â','ă']};
+const VOW_SWAP={'ư':['u'],'u':['ư'],'ơ':['o','ô'],'ô':['o','ơ'],'o':['ơ','ô'],'ê':['e'],'e':['ê'],'â':['a','ă'],'ă':['a','â'],'a':['â','ă'],'i':['y'],'y':['i']};
 function nucleusVariants(v){
   const out=[v],cs=[...v];
   for(let i=0;i<cs.length;i++)for(const r of VOW_SWAP[cs[i]]||[])out.push(cs.slice(0,i).join('')+r+cs.slice(i+1).join(''));
@@ -1950,41 +1950,201 @@ function addVerifiedContextIssues(text,t,out,occ,addIssue){
 }
 
 
-function addDatabaseContextIssues(text,t,out,occ,addIssue){
-  for(const r of (typeof contextRules!=='undefined'?contextRules:[])){
+/* ====== V5.4: CONTEXT DEEP + RULE SAFETY ======
+   Mục tiêu:
+   1) Không bỏ qua một từ chỉ vì nó có trong unigram.
+   2) Không dùng raw bigram để ưu ái các từ quá phổ biến (ví dụ "có").
+   3) context_rules phải qua kiểm tra ngay trong câu hiện tại.
+   4) Khi target/suggestion là cụm cùng số tiếng, chỉ gạch đúng tiếng thay đổi.
+   5) Cạnh tranh giữa hai vị trí liền nhau: giữ phương án có bằng chứng mạnh hơn,
+      tránh kiểu "cũng cố gắn" bị gạch "cố" thay vì "gắn".
+*/
+function edgeAssoc(a,b){
+  if(!a||!b)return 0;
+  const c=pc(a,b);if(!c)return 0;
+  return c/Math.sqrt(Math.max(1,uc(a)*uc(b)));
+}
+function localEvidence(prev,w,next){
+  const left=prev?pc(prev,w):0,right=next?pc(w,next):0;
+  return {left,right,raw:left+right,assoc:(prev?edgeAssoc(prev,w):0)+(next?edgeAssoc(w,next):0)};
+}
+function tokenSeqEvidence(seq,prev,next){
+  let raw=0,assoc=0;
+  if(!seq?.length)return {raw,assoc};
+  if(prev){raw+=pc(prev,seq[0]);assoc+=edgeAssoc(prev,seq[0])}
+  for(let i=0;i<seq.length-1;i++){raw+=pc(seq[i],seq[i+1]);assoc+=edgeAssoc(seq[i],seq[i+1])}
+  if(next){raw+=pc(seq[seq.length-1],next);assoc+=edgeAssoc(seq[seq.length-1],next)}
+  return {raw,assoc};
+}
+function ruleChange(target,suggestion){
+  const a=key(target).split(/\s+/).filter(Boolean),b=key(suggestion).split(/\s+/).filter(Boolean);
+  if(!a.length||!b.length)return null;
+  if(a.length!==b.length)return {from:0,to:a.length-1,replacement:b.join(' '),a,b,multi:true};
+  const diff=[];for(let i=0;i<a.length;i++)if(a[i]!==b[i])diff.push(i);
+  if(!diff.length)return null;
+  const from=diff[0],to=diff[diff.length-1];
+  return {from,to,replacement:b.slice(from,to+1).join(' '),a,b,multi:(to>from)};
+}
+function ruleDecision(text,t,ti,tj,r,change){
+  const prev=(ti>0&&contiguous(text,t[ti-1],t[ti]))?t[ti-1].k:null;
+  const next=(tj<t.length-1&&contiguous(text,t[tj],t[tj+1]))?t[tj+1].k:null;
+  const original=t.slice(ti,tj+1).map(x=>x.k);
+  const proposed=key(r.suggestion).split(/\s+/).filter(Boolean);
+  const origSeq=tokenSeqEvidence(original,prev,next),propSeq=tokenSeqEvidence(proposed,prev,next);
+  const conf=String(r.confidence||'').toLowerCase();
+  const priority=+r.priority||0;
+  const verified=/verified|curated|context/.test(conf)||priority>=1000;
+  const sourceUnknown=original.some(w=>uc(w)<=0);
+  if(sourceUnknown)return {allow:true,kind:'error',origSeq,propSeq};
+
+  // Nếu chỉ thay một tiếng, dùng đúng hai hàng xóm của tiếng đó để chấm.
+  if(change && change.from===change.to && proposed.length===original.length){
+    const k=ti+change.from;
+    const p=(k>0&&contiguous(text,t[k-1],t[k]))?t[k-1].k:null;
+    const n=(k<t.length-1&&contiguous(text,t[k],t[k+1]))?t[k+1].k:null;
+    const cur=localEvidence(p,t[k].k,n),cand=localEvidence(p,proposed[change.from],n);
+    // Cụm hiện tại đã có bằng chứng mạnh tương đương phương án sửa => rule nguy hiểm.
+    if(cur.raw>=2 && cur.assoc>=cand.assoc*.80)return {allow:false,cur,cand,origSeq,propSeq};
+    if(cand.raw>=6 && cand.assoc>=.05 && cand.raw>=(cur.raw+1)*5)
+      return {allow:true,kind:'error',cur,cand,origSeq,propSeq};
+    if(verified && cand.raw>=6 && cand.assoc>=.025 && cand.raw>=(cur.raw+1)*5)
+      return {allow:true,kind:'maybe',cur,cand,origSeq,propSeq};
+  }
+
+  // Cụm gốc vốn tự nhiên và phương án sửa không thắng rõ => chặn.
+  if(origSeq.raw>=4 && propSeq.assoc<=origSeq.assoc*1.35)return {allow:false,origSeq,propSeq};
+  // Rule ngắn, toàn từ có thật là nhóm dễ báo oan: chỉ cảnh báo nếu phương án thắng rất rõ.
+  if(original.every(w=>uc(w)>0) && proposed.every(w=>uc(w)>0) && original.length<=3){
+    if(verified && propSeq.raw>=8 && propSeq.assoc>=origSeq.assoc*3+0.02)
+      return {allow:true,kind:'maybe',origSeq,propSeq};
+    return {allow:false,origSeq,propSeq};
+  }
+  if(verified && propSeq.raw>=Math.max(4,(origSeq.raw+1)*3))return {allow:true,kind:'maybe',origSeq,propSeq};
+  return {allow:false,origSeq,propSeq};
+}
+
+let contextRuleIndexSource=null,contextRuleIndexSize=-1,contextRuleIndex=new Map();
+function getContextRuleIndex(){
+  const src=(typeof contextRules!=='undefined'&&Array.isArray(contextRules))?contextRules:[];
+  if(contextRuleIndexSource===src&&contextRuleIndexSize===src.length)return contextRuleIndex;
+  const m=new Map();
+  for(const r of src){
+    if(!r?.is_active&&r?.is_active!==undefined)continue;
     if(!r?.pattern||!r?.target||!r?.suggestion)continue;
-    const parts=key(r.pattern).split(/\s+/).filter(Boolean);
-    if(!parts.length)continue;
-    for(let i=0;i+parts.length<=t.length;i++){
+    const parts=key(r.pattern).split(/\s+/).filter(Boolean);if(!parts.length)continue;
+    const first=parts[0];let a=m.get(first);if(!a){a=[];m.set(first,a)}
+    a.push({...r,_parts:parts});
+  }
+  for(const a of m.values())a.sort((x,y)=>(y._parts.length-x._parts.length)||((+y.priority||0)-(+x.priority||0)));
+  contextRuleIndexSource=src;contextRuleIndexSize=src.length;contextRuleIndex=m;return m;
+}
+function addDatabaseContextIssues(text,t,out,occ,addIssue){
+  const idx=getContextRuleIndex();
+  for(let i=0;i<t.length;i++){
+    const rules=idx.get(t[i].k)||[];
+    for(const r of rules){
+      const parts=r._parts,n=parts.length;if(i+n>t.length)continue;
       let ok=true;
-      for(let z=0;z<parts.length;z++){
+      for(let z=0;z<n;z++){
         if(t[i+z].k!==parts[z]){ok=false;break}
-        if(z<parts.length-1&&!contiguous(text,t[i+z],t[i+z+1])){ok=false;break}
+        if(z<n-1&&!contiguous(text,t[i+z],t[i+z+1])){ok=false;break}
       }
       if(!ok)continue;
-      // V5.2: target có thể là 1 từ HOẶC cả cụm nhiều tiếng.
       const targetParts=key(r.target).split(/\s+/).filter(Boolean);
       let rel=-1;
       for(let p=0;p+targetParts.length<=parts.length;p++){
-        let same=true;
-        for(let z=0;z<targetParts.length;z++){
-          if(parts[p+z]!==targetParts[z]){same=false;break}
-        }
+        let same=true;for(let z=0;z<targetParts.length;z++)if(parts[p+z]!==targetParts[z]){same=false;break}
         if(same){rel=p;break}
       }
       if(rel<0)continue;
-      const ti=i+rel, tj=ti+targetParts.length-1;
-      let occupied=false;
-      for(let z=ti;z<=tj;z++)if(occ.has(z)){occupied=true;break}
+      const baseTi=i+rel,baseTj=baseTi+targetParts.length-1;
+      let occupied=false;for(let z=baseTi;z<=baseTj;z++)if(occ.has(z)){occupied=true;break}
       if(occupied)continue;
-      addIssue(ti,tj,'error','Sai chính tả',[r.suggestion],
-        r.explanation||`Trong cụm “${r.pattern}”, nên dùng “${r.suggestion}”.`,
-        {
-          contextRuleId:r.id||null,
-          meaning:r.meaning||'',
-          examples:r.example?[r.example]:[],
-          dataSource:r.source||''
+      const ch=ruleChange(r.target,r.suggestion);if(!ch)continue;
+      const decision=ruleDecision(text,t,baseTi,baseTj,r,ch);if(!decision.allow)continue;
+
+      // Cùng số tiếng: chỉ đánh dấu phần thật sự thay đổi.
+      let ti=baseTi,tj=baseTj,suggestion=r.suggestion;
+      if(ch.a.length===ch.b.length){ti=baseTi+ch.from;tj=baseTi+ch.to;suggestion=ch.replacement}
+      let occupied2=false;for(let z=ti;z<=tj;z++)if(occ.has(z)){occupied2=true;break}
+      if(occupied2)continue;
+      addIssue(ti,tj,decision.kind||'maybe',decision.kind==='error'?'Sai chính tả':'Nghi sai theo ngữ cảnh',[suggestion],
+        r.explanation||`Trong cụm “${r.pattern}”, nên cân nhắc “${r.suggestion}”.`,{
+          contextRuleId:r.id||null,meaning:r.meaning||'',examples:r.example?[r.example]:[],dataSource:r.source||'',
+          rulePriority:+r.priority||0,ruleConfidence:r.confidence||'',contextDecision:decision
         });
+    }
+  }
+}
+
+function candidatePool(raw){
+  const w=key(raw),m=new Map();
+  for(const c of variants(w))m.set(c.w,{...c,source:'vi-confusion'});
+  // Edit-distance trên toàn vocab rất tốn CPU và dễ báo oan với từ vốn đã hợp lệ.
+  // Chỉ dùng fallback này cho TỪ KHÔNG CÓ trong unigram; từ có thật chỉ xét
+  // các nhóm nhầm lẫn chính tả tiếng Việt đã mô hình hoá trong variants().
+  if(uc(w)<=0){
+    for(const x of lexicalCandidates(raw,8)){
+      if(x.w===w||x.d1>1)continue;
+      if(!m.has(x.w))m.set(x.w,{w:x.w,cost:1,fq:uc(x.w),source:'edit'});
+    }
+  }
+  return [...m.values()];
+}
+function buildContextProposals(text,t,occ){
+  const proposals=[];
+  for(let i=0;i<t.length;i++){
+    if(occ.has(i))continue;
+    const w=t[i];if(isNameLike(text,w))continue;
+    if((i>0&&occ.has(i-1))||(i<t.length-1&&occ.has(i+1)))continue;
+    const {p,n}=nb(text,t,i);if(!p&&!n)continue;
+    const current=localEvidence(p,w.k,n),fq=uc(w.k);
+    const cs=[];
+    for(const c of candidatePool(w.text)){
+      if(!c.w||c.w===w.k)continue;
+      const ev=localEvidence(p,c.w,n);
+      let minRaw=6,minAssoc=.025,rawRatio=5,assocRatio=3;
+      // Khi cụm hiện tại đã có chút bằng chứng, chỉ cho đối thủ cực mạnh đi tiếp.
+      if(fq>0&&current.raw>1){minRaw=Math.max(12,(current.raw+1)*10);minAssoc=.08;rawRatio=10;assocRatio=6}
+      if(c.source==='edit'){minRaw=Math.max(minRaw,10);minAssoc=Math.max(minAssoc,.045)}
+      if(ev.raw<minRaw||ev.assoc<minAssoc)continue;
+      if(ev.raw<(current.raw+1)*rawRatio)continue;
+      if(ev.assoc<(current.assoc+.001)*assocRatio)continue;
+      const score=ev.assoc*Math.log1p(ev.raw)/(1+.35*(c.cost||1));
+      cs.push({...c,...ev,score});
+    }
+    if(!cs.length)continue;
+    cs.sort((a,b)=>b.score-a.score||b.assoc-a.assoc||b.raw-a.raw||(a.cost-b.cost));
+    const best=cs[0],second=cs[1];
+    const ambiguous=!!(second&&second.score>=best.score*.50);
+    const strong=!ambiguous&&best.cost<=1&&best.raw>=10&&best.assoc>=.05&&current.raw<=1;
+    proposals.push({i,w,current,best,second,ambiguous,strong,candidates:cs.slice(0,4)});
+  }
+  // Hai vị trí kề nhau cùng muốn sửa: nếu một bằng chứng mạnh hơn >=4 lần, bỏ ứng viên yếu.
+  const keep=new Array(proposals.length).fill(true);
+  for(let a=0;a<proposals.length;a++)for(let b=a+1;b<proposals.length;b++){
+    if(Math.abs(proposals[a].i-proposals[b].i)!==1)continue;
+    const A=proposals[a].best.score,B=proposals[b].best.score;
+    if(A>=B*4)keep[b]=false;else if(B>=A*4)keep[a]=false;
+  }
+  return proposals.filter((_,i)=>keep[i]);
+}
+function addDeepContextIssues(text,t,out,occ,addIssue){
+  for(const p of buildContextProposals(text,t,occ)){
+    if(occ.has(p.i))continue;
+    const suggestions=p.candidates.map(x=>x.w);
+    if(p.ambiguous){
+      addIssue(p.i,p.i,'maybe','Cần chọn theo nghĩa',suggestions,
+        'Có nhiều cách viết gần nhau đều hợp ngữ cảnh. Engine phát hiện vị trí đáng ngờ nhưng không tự sửa khi chưa đủ bằng chứng ngữ nghĩa.',
+        {deepContext:true,ambiguous:true,currentEvidence:p.current,candidateEvidence:p.best});
+    }else if(p.strong){
+      addIssue(p.i,p.i,'error','Sai chính tả',suggestions,
+        'Phương án gần chữ có liên kết ngữ cảnh mạnh hơn rõ rệt; đã loại ảnh hưởng của các từ quá phổ biến.',
+        {deepContext:true,currentEvidence:p.current,candidateEvidence:p.best});
+    }else{
+      addIssue(p.i,p.i,'maybe','Nghi sai theo ngữ cảnh',suggestions,
+        'Cách viết hiện tại có thể là từ có thật, nhưng một phương án gần chữ hợp cụm xung quanh hơn rõ rệt. Không tự sửa để tránh đổi nhầm nghĩa.',
+        {deepContext:true,currentEvidence:p.current,candidateEvidence:p.best});
     }
   }
 }
@@ -2017,64 +2177,45 @@ function detect(text){
     for(let z=i;z<=j;z++)occ.add(z);
   };
 
-  // 1. Cụm sai đã xác nhận: kho Nhost (nếu tải được) + danh sách cục bộ
+  // 1. Kho lỗi đã xác nhận.
   const known=new Map(state.wrong);
   for(const [w,c,n] of LOCAL_WRONG)if(!known.has(w))known.set(w,{correct:c,note:n,meaning:'',examples:[]});
   for(let i=0;i<t.length;i++){
     if(occ.has(i))continue;
     for(let n=Math.min(5,t.length-i);n>=1;n--){
       const p=phrase(text,t,i,n);if(!p)continue;
-      const e=known.get(key(p));
-      if(e){
-        addIssue(i,i+n-1,'error','Sai chính tả',e.correct?[e.correct]:[],e.note||'Biến thể sai đã được xác nhận.',{meaning:e.meaning,examples:e.examples||[],wordId:e.id||null});
-        break;
+      const e=known.get(key(p));if(!e)continue;
+      const ch=ruleChange(p,e.correct||'');
+      if(ch&&ch.a.length===ch.b.length){
+        const ti=i+ch.from,tj=i+ch.to;
+        addIssue(ti,tj,'error','Sai chính tả',ch.replacement?[ch.replacement]:[],e.note||'Biến thể sai đã được xác nhận.',
+          {meaning:e.meaning,examples:e.examples||[],wordId:e.id||null});
+      }else{
+        addIssue(i,i+n-1,'error','Sai chính tả',e.correct?[e.correct]:[],e.note||'Biến thể sai đã được xác nhận.',
+          {meaning:e.meaning,examples:e.examples||[],wordId:e.id||null});
       }
+      break;
     }
   }
 
-  // 1b. Cụm ngữ cảnh đã xác minh: chỉ đánh dấu đúng tiếng sai.
+  // 2. Rule cục bộ + database; database phải qua safety gate V5.4.
   addVerifiedContextIssues(text,t,out,occ,addIssue);
-
-  // 1c. Quy tắc ngữ cảnh đã xác minh trong Nhost — query một lần, dùng chung toàn app.
   addDatabaseContextIssues(text,t,out,occ,addIssue);
 
-  // 2. Từ lạ thực sự. Không dùng corpus để kết luận một từ tiếng Việt hợp lệ là sai.
-  const singlePass=(strong)=>{
-    for(let i=0;i<t.length;i++){
-      if(occ.has(i))continue;
-      const w=t[i],fq=uc(w.k);
+  // 3. Deep context: xét cả từ có thật trong corpus và xử lý cạnh tranh vị trí.
+  addDeepContextIssues(text,t,out,occ,addIssue);
 
-      // Từ đã tồn tại trong ngữ liệu: KHÔNG tự suy đoán sai chỉ vì cụm xung quanh hiếm.
-      if(fq>0)continue;
+  // 4. Những từ vẫn chưa có trong corpus và chưa đủ bằng chứng sửa: chỉ cảnh báo.
+  for(let i=0;i<t.length;i++){
+    if(occ.has(i))continue;
+    const w=t[i];if(uc(w.k)>0||isNameLike(text,w))continue;
+    const lexical=lexicalCandidates(w.text,4).map(x=>x.w);
+    addIssue(i,i,'unknown','Từ lạ / cần xác minh',lexical,
+      'Không thấy từ này trong kho ngữ liệu và chưa có đủ bằng chứng ngữ cảnh để tự kết luận. Nếu là tên riêng hoặc thuật ngữ thì có thể bỏ qua.');
+  }
 
-      // Tên riêng/viết hoa giữa câu có thể không có trong ngữ liệu.
-      if(isNameLike(text,w))continue;
-
-      const {p,n}=nb(text,t,i);
-      const cands=variants(w.k)
-        .map(c=>({...c,s:sup(p,c.w,n),l:p?pc(p,c.w):0,r:n?pc(c.w,n):0}))
-        .sort((a,b)=>(b.s-a.s)||(b.fq-a.fq));
-
-      const contextual=cands.filter(x=>x.s>0);
-      const lexical=lexicalCandidates(w.text,4).map(x=>x.w);
-      const sug=(contextual.length?contextual.slice(0,4).map(x=>x.w):lexical);
-
-      // Nếu có một ứng viên khớp ngữ cảnh, báo lỗi; nếu không chỉ báo "từ lạ".
-      addIssue(
-        i,i,
-        contextual.length?'error':'unknown',
-        contextual.length?'Sai chính tả':'Từ lạ / cần xác minh',
-        sug,
-        contextual.length
-          ? 'Từ này không có trong kho ngữ liệu và có phương án gần chữ phù hợp với từ bên cạnh.'
-          : 'Không thấy từ này trong kho ngữ liệu. Nếu là tên riêng hoặc thuật ngữ thì có thể bỏ qua.'
-      );
-    }
-  };
-  singlePass(true);
-  // 3. v4.2: bỏ suy luận cặp từ toàn cục. Cặp sai theo ngữ cảnh phải đến từ context_rules đã xác minh.
-  const clean=out.filter(x=>x.kind==='error'||x.kind==='unknown');
-  const rank={error:5,unknown:4};
+  const clean=out.filter(x=>x.kind==='error'||x.kind==='maybe'||x.kind==='unknown');
+  const rank={error:5,maybe:4,unknown:3};
   return clean.sort((a,b)=>a.start-b.start||(rank[b.kind]||0)-(rank[a.kind]||0)||b.end-a.end);
 }
 
@@ -2088,7 +2229,8 @@ function renderMirror(text,issues){
   let h='',cur=0;
   for(const x of chosen){
     h+=esc(text.slice(cur,x.start));
-    h+=`<span class="mark error">${esc(text.slice(x.start,x.end))}</span>`;
+    const cls=x.kind==='maybe'?'maybe':(x.kind==='unknown'?'maybe':'error');
+    h+=`<span class="mark ${cls}">${esc(text.slice(x.start,x.end))}</span>`;
     cur=x.end;
   }
   h+=esc(text.slice(cur));
@@ -2255,7 +2397,7 @@ function renderIssues(){
     const active=i===state.active;
     const suggestionOptions=(x.suggestions||[]).map(s=>renderSuggestionOption(x,i,s)).join('');
     const source=x.dataSource?`<div class="rule"><b>Nguồn:</b> ${esc(x.dataSource)}</div>`:'';
-    return `<div class="issue ${active?'active':''}" data-issue="${i}">
+    return `<div class="issue ${esc(x.kind||'')} ${active?'active':''}" data-issue="${i}">
       <div class="issue-title"><span class="word">${esc(x.text)}</span><span class="tag">• ${esc(x.title)}</span></div>
       <div class="issue-detail">
         ${suggestionOptions?`<div class="suggestion-options">${suggestionOptions}</div>`:''}
