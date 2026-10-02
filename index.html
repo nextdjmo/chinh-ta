@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chính Tả Full V4.2 Lean DB — Sổ Tay Chính Tả — Nhost Dictionary v2</title>
+<title>Chính Tả Full V4.2.2 Lean DB — Sổ Tay Chính Tả — Nhost Dictionary v2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Be+Vietnam+Pro:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <style>
@@ -858,6 +858,7 @@
   }
 
 </style>
+  <link rel="icon" href="data:,">
 </head>
 <body>
 
@@ -1641,6 +1642,17 @@ async function loadContextRules(){
   }
 }
 
+/* ================= SHARED HTML ESCAPER =================
+   Dùng chung cho Từ điển / Trò chơi / Quản trị. Phải ở global scope. */
+function escapeHtml(value){
+  return String(value ?? '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/\"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
 /* ================= CHECKER V4 — ENGINE FROM USER FILE ================= */
 (function(){
 const NHOST={subdomain:'yuprdhhnuuskxlvfjggm',region:'ap-southeast-1'};
@@ -1658,7 +1670,6 @@ const state={
 function key(s){return (s||'').normalize('NFC').toLowerCase().trim()}
 function strip(s){return key(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d')}
 function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function escapeHtml(s){return esc(s)}
 function pc(a,b){return state.bi.get(key(a)+' '+key(b))||0}
 function uc(a){return state.uni.get(key(a))||0}
 
