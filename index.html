@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chính Tả Full V6.0 Dictionary Fusion + Full Reset + Context Deep — Sổ Tay Chính Tả — Nhost Dictionary v2</title>
+<title>Chính Tả V6.1 Conservative Context — Safe Suggestions — Sổ Tay Chính Tả — Nhost Dictionary v2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Be+Vietnam+Pro:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <style>
@@ -723,6 +723,17 @@
     overflow:auto;
     flex:1;
     background:rgba(246,241,226,.48);
+    scroll-behavior:auto;
+    overscroll-behavior:contain;
+  }
+
+  /* V6.9: chừa đủ khoảng trống ở cuối để cả mục lỗi cuối cùng
+     cũng có thể được căn lên sát đầu vùng danh sách khi chọn. */
+  #panel-checker .v4-checker .issue-tail-spacer{
+    height:calc(100% - 48px);
+    min-height:220px;
+    pointer-events:none;
+    background:transparent;
   }
 
   #panel-checker .v4-checker .issue{
@@ -763,6 +774,43 @@
     line-height:1.58;
   }
   #panel-checker .v4-checker .issue.active .issue-detail{display:block}
+
+
+  /* V6.8: lỗi đang mở luôn có tiêu đề + nút bỏ qua ghim ở phía trên.
+     Khi phần gợi ý rất dài, người dùng vẫn luôn nhìn thấy từ đang xét và nút ×. */
+  #panel-checker .v4-checker .issue.active .issue-title{
+    position:sticky;
+    top:0;
+    z-index:8;
+    margin:-12px -14px 8px;
+    padding:11px 42px 10px 14px;
+    background:#fbf7ea;
+    border-bottom:1px solid rgba(169,192,212,.70);
+    box-shadow:0 2px 4px rgba(35,50,74,.08);
+  }
+  #panel-checker .v4-checker .issue-skip-x{
+    position:absolute;
+    top:6px;
+    right:7px;
+    width:30px;
+    height:30px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+    border:1px solid rgba(168,69,63,.42);
+    border-radius:5px;
+    background:#fffdf6;
+    color:var(--v4-red);
+    font:700 20px/1 Arial,sans-serif;
+    cursor:pointer;
+  }
+  #panel-checker .v4-checker .issue-skip-x:hover,
+  #panel-checker .v4-checker .issue-skip-x:focus-visible{
+    background:var(--v4-red);
+    color:#fff;
+    outline:none;
+  }
 
   #panel-checker .v4-checker .suggests{
     display:flex;
@@ -867,6 +915,54 @@
     background:transparent !important;
   }
 
+  /* V6.5: vị trí đã sửa luôn hiện XANH LÁ + ĐẬM trong phiên hiện tại. */
+  #panel-checker .v4-checker .editorbox.checked-view .mark.corrected{
+    color:#16803a !important;
+    font-weight:800 !important;
+    text-decoration:none !important;
+    background:rgba(22,128,58,.08) !important;
+    border-radius:3px;
+  }
+
+  /* V6.7 EXACT HIGHLIGHT
+     Không đưa textarea lên trên mirror khi chọn lỗi nữa. Selection thật trên một textarea
+     trong suốt bị lệch khi mirror xuống dòng khác 1-2px và gây hiện tượng chữ chồng/lung tung.
+     Từ được chọn sẽ được tô trực tiếp trên span của mirror, nên luôn đúng chính xác vị trí. */
+  #panel-checker .v4-checker .editorbox.issue-focus #editor{
+    z-index:2 !important;
+    color:transparent !important;
+    caret-color:transparent !important;
+  }
+  #panel-checker .v4-checker #editor::selection{
+    background:transparent;
+    color:transparent;
+  }
+  #panel-checker .v4-checker .editorbox.checked-view .mark.active-target{
+    background:#243852 !important;
+    color:#fff !important;
+    border-radius:3px;
+    box-shadow:0 0 0 1px rgba(36,56,82,.20);
+    -webkit-text-stroke:0 transparent !important;
+    text-shadow:none !important;
+  }
+
+  /* Quan trọng: font-weight thật làm thay đổi chiều rộng chữ và khiến mirror khác textarea.
+     Dùng stroke/shadow để tạo cảm giác đậm nhưng KHÔNG làm thay đổi layout/wrapping. */
+  #panel-checker .v4-checker .editorbox.checked-view .mark.error,
+  #panel-checker .v4-checker .editorbox.checked-view .mark.unknown,
+  #panel-checker .v4-checker .editorbox.checked-view .mark.context,
+  #panel-checker .v4-checker .editorbox.checked-view .mark.maybe,
+  #panel-checker .v4-checker .editorbox.checked-view .mark.sequence{
+    font-weight:inherit !important;
+    -webkit-text-stroke:.22px currentColor;
+    text-shadow:.18px 0 currentColor,-.18px 0 currentColor;
+  }
+  #panel-checker .v4-checker .editorbox.checked-view .mark.corrected{
+    font-weight:inherit !important;
+    -webkit-text-stroke:.30px currentColor;
+    text-shadow:.24px 0 currentColor,-.24px 0 currentColor;
+  }
+
 
   /* ===== V4.4: giải thích từng phương án thay thế ===== */
   #panel-checker .v4-checker .suggestion-options{
@@ -960,7 +1056,7 @@
 
             <div id="status" class="status">Đang nạp dữ liệu tiếng Việt…</div>
 
-            <div class="legend"><span class="legend-error"><i></i>Chữ đỏ đậm: vị trí cần kiểm tra / sửa. Nút Xoá sẽ reset toàn bộ.</span></div>
+            <div class="legend"><span class="legend-error"><i></i>Chữ đỏ đậm: vị trí cần kiểm tra / sửa. Bấm lỗi để bôi đen đúng từ. Nút Xoá sẽ reset toàn bộ.</span></div>
           </section>
 
           <aside class="right">
@@ -1734,7 +1830,7 @@ const editor=$('editor'),mirror=$('mirror'),issuesEl=$('issues'),statusEl=$('sta
 const state={
   uni:new Map(),bi:new Map(),vocab:[],buckets:new Map(),
   wrong:new Map(),
-  // V6.0: toàn bộ dictionary_words trở thành lexicon dương tính của checker.
+  // V6.2 CONTEXT-SAFE: toàn bộ dictionary_words trở thành lexicon dương tính của checker.
   dict:new Map(),dictByLen:new Map(),dictSingleBuckets:new Map(),dictMasks:new Map(),dictRows:[],
   dictReady:false,
   ready:false,issues:[],active:0
@@ -2146,7 +2242,8 @@ function addDictionaryWordIssues(text,t,out,occ,addIssue,protectedTokens=new Set
           const to=e._parts[pos];if(!to||to===from)continue;
           const curated=isCuratedDictionaryEntry(e);
           const sourceUnknown=uc(from)<=0&&!state.dict.has(from);
-          if(!curated&&!sourceUnknown)continue;
+          // V6.2: dictionary mask chỉ cứu tiếng thật sự lạ; không thay real-word hợp lệ.
+          if(!sourceUnknown)continue;
 
           // Chỉ nhận thay đổi gần chữ. "curated" được phép rộng hơn một chút
           // vì chính mục từ đã mã hoá cặp dễ nhầm.
@@ -2218,8 +2315,10 @@ function addDictionaryWordIssues(text,t,out,occ,addIssue,protectedTokens=new Set
         const ev=tokenSeqEvidence(seq,prev,next),internal=phraseInternalEvidence(seq);
         const sourceUnknown=original.some((w,z)=>w!==seq[z]&&uc(w)<=0&&!state.dict.has(w));
         const curated=isCuratedDictionaryEntry(e);
+        // V6.2: tổ hợp từ điển không được đổi real-word hợp lệ sang real-word khác.
+        if(!sourceUnknown)continue;
 
-        // QUY TẮC AN TOÀN V6.0:
+        // QUY TẮC AN TOÀN V6.2 CONTEXT-SAFE:
         // dictionary_words loại "dictionary" là bằng chứng DƯƠNG TÍNH (cụm đúng),
         // không phải danh sách "mọi cụm khác đều sai". Vì vậy không được dùng một mục
         // từ phổ thông để ép đổi một tiếng hiện tại vốn cũng là từ hợp lệ.
@@ -2290,7 +2389,8 @@ function addDictionaryWordIssues(text,t,out,occ,addIssue,protectedTokens=new Set
           const seq=original.slice();seq[z]=o.w;
           const e=state.dict.get(seq.join(' '));if(!e)continue;
           const sourceUnknown=uc(original[z])<=0&&!state.dict.has(original[z]);
-          if(!isCuratedDictionaryEntry(e)&&!sourceUnknown)continue;
+          // V6.2: cụm dài cũng chỉ cứu tiếng nguồn thật sự lạ.
+          if(!sourceUnknown)continue;
           const prev=(i>0&&contiguous(text,t[i-1],t[i]))?t[i-1].k:null;
           const next=(i+n<t.length&&contiguous(text,t[i+n-1],t[i+n]))?t[i+n].k:null;
           const ev=tokenSeqEvidence(seq,prev,next),internal=phraseInternalEvidence(seq);
@@ -2483,7 +2583,64 @@ const VERIFIED_CONTEXT_RULES=[
   {p:['chải','chiếu'],a:0,c:'trải',note:'Trong nghĩa mở tấm chiếu ra, dùng “trải chiếu”.'},
   {p:['kề','chuyện'],a:0,c:'kể',note:'Trong nghĩa thuật lại, dùng “kể chuyện”.'},
   {p:['chạy','nhẩy'],a:1,c:'nhảy',note:'Cách viết phổ thông hiện nay là “nhảy”.'},
-  {p:['sách','đồ'],a:0,c:'xách',note:'Trong nghĩa cầm/mang đồ bằng tay, dùng “xách đồ”.'}
+  {p:['sách','đồ'],a:0,c:'xách',note:'Trong nghĩa cầm/mang đồ bằng tay, dùng “xách đồ”.'},
+  // V6.2 — real-word confusion: chỉ sửa khi ngữ cảnh đủ rõ.
+  {p:['lúa','đã','ngã','sang'],a:2,c:'ngả',note:'Trong “lúa đã ngả sang màu…”, “ngả” = chuyển dần sang trạng thái/màu khác.'},
+  {p:['đã','ngã','sang'],a:1,c:'ngả',note:'Trong “đã ngả sang…”, dùng “ngả”, không dùng “ngã” (mất thăng bằng).'},
+  {p:['toả','hương'],a:0,c:'tỏa',note:'Chuẩn hoá cách viết hiện hành: “tỏa hương”.'},
+  {p:['xải','cánh'],a:0,c:'sải',note:'Chim dang rộng cánh để bay: “sải cánh”. “Xải” là một từ khác nghĩa.'},
+  {p:['ôm','trầm','lấy'],a:1,c:'chầm',note:'Cụm đúng là “ôm chầm lấy”. “Trầm” là từ khác nghĩa.'},
+  {p:['bửa','cơm'],a:0,c:'bữa',note:'Trong nghĩa một lần ăn, dùng “bữa cơm”. “Bửa” là từ khác nghĩa.'},
+  {p:['ổi','đã','chính'],a:2,c:'chín',note:'Quả đạt độ ăn được là “chín”; “chính” mang nghĩa khác.'},
+  {p:['quả','ổi','đã','chính'],a:3,c:'chín',note:'Quả đạt độ ăn được là “chín”; “chính” mang nghĩa khác.'},
+  {p:['chơi','chốn','tìm'],a:1,c:'trốn',note:'Tên trò chơi là “trốn tìm”. “Chốn” nghĩa là nơi chốn.'},
+  {p:['yên','tỉnh'],a:1,c:'tĩnh',note:'Cụm đúng là “yên tĩnh”. “Tỉnh” mang nghĩa khác.'},
+  {p:['chở','về'],a:0,c:'trở',note:'Trong nghĩa quay về nơi cũ, dùng “trở về”; “chở” là vận chuyển.'},
+  {p:['em','sẻ','cố'],a:1,c:'sẽ',note:'Từ chỉ thời gian tương lai là “sẽ”: “em sẽ cố gắng…”.'},
+  {p:['sẻ','cố','gắng'],a:0,c:'sẽ',note:'Từ chỉ thời gian tương lai là “sẽ”: “sẽ cố gắng…”.'},
+  // V6.3 — bộ quy tắc ngữ cảnh phổ dụng cho các lỗi real-word/near-word thường gặp.
+  {p:['lòng','dũng','cãm'],a:2,c:'cảm',note:'Cụm đúng là “lòng dũng cảm”.'},
+  {p:['dũng','cãm'],a:1,c:'cảm',note:'Cụm đúng là “dũng cảm”.'},
+  {p:['tinh','thần','chia','xẻ'],a:3,c:'sẻ',note:'Trong nghĩa cùng chia cho nhau, dùng “chia sẻ”; “xẻ” là cắt/chẻ.'},
+  {p:['chia','xẻ'],a:1,c:'sẻ',note:'Trong nghĩa cùng chia cho nhau, dùng “chia sẻ”; “xẻ” là cắt/chẻ.'},
+  {p:['lại','dơ','tay'],a:1,c:'giơ',note:'Đưa tay lên để phát biểu là “giơ tay”.'},
+  {p:['dơ','tay'],a:0,c:'giơ',note:'Đưa tay lên để phát biểu là “giơ tay”.'},
+  {p:['đọc','bài','rất','chôi','chảy'],a:3,c:'trôi',note:'Đọc/nói lưu loát là “trôi chảy”.'},
+  {p:['chôi','chảy'],a:0,c:'trôi',note:'Cụm đúng là “trôi chảy”.'},
+  {p:['chơi','chốn','tìm'],a:1,c:'trốn',note:'Tên trò chơi là “trốn tìm”.'},
+  {p:['xem','sét','lại'],a:1,c:'xét',note:'Trong nghĩa kiểm tra/cân nhắc lại, dùng “xem xét lại”.'},
+  {p:['xem','sét'],a:1,c:'xét',note:'Cụm đúng là “xem xét”.'},
+  {p:['nhanh','chóng','chở','về'],a:2,c:'trở',note:'Trong nghĩa quay về nơi cũ, dùng “trở về”; “chở” là vận chuyển.'},
+  {p:['cô','giáo','giành','nhiều','thời','gian'],a:2,c:'dành',note:'Trong nghĩa bỏ/để thời gian cho việc gì, dùng “dành thời gian”.'},
+  {p:['giành','nhiều','thời','gian'],a:0,c:'dành',note:'Trong nghĩa bỏ/để thời gian cho việc gì, dùng “dành thời gian”; “giành” là tranh lấy.'},
+  {p:['phải','tập','chung','suy','nghĩ'],a:2,c:'trung',note:'Cụm đúng là “tập trung suy nghĩ”.'},
+  {p:['tập','chung'],a:1,c:'trung',note:'Trong nghĩa dồn sự chú ý, dùng “tập trung”.'},
+  {p:['chúng','em','sẻ','hoàn','thành'],a:2,c:'sẽ',note:'Từ chỉ tương lai là “sẽ”: “chúng em sẽ hoàn thành…”.'},
+  {p:['em','sẻ','hoàn','thành'],a:1,c:'sẽ',note:'Từ chỉ tương lai là “sẽ”.'},
+
+  // V6.6 — bộ benchmark trường học: chỉ sửa khi đúng cụm, tránh đổi từ có nghĩa ở ngữ cảnh khác.
+  {p:['sinh','hoặt'],a:1,c:'hoạt',note:'Cụm đúng là “sinh hoạt”.'},
+  {p:['giặn'],a:0,c:'dặn',note:'Cách viết chuẩn là “dặn”.'},
+  {p:['tập','chung'],a:1,c:'trung',note:'Cụm đúng là “tập trung”.'},
+  {p:['chật','tự'],a:0,c:'trật',note:'Cụm đúng là “trật tự”.'},
+  {p:['xếp','hàn'],a:1,c:'hàng',note:'Cụm đúng là “xếp hàng”.'},
+  {p:['dơ','tay'],a:0,c:'giơ',note:'Đưa tay lên để phát biểu là “giơ tay”.'},
+  {p:['chia','xẻ'],a:1,c:'sẻ',note:'Trong nghĩa cùng chia cho nhau, dùng “chia sẻ”.'},
+  {p:['giành','thời','gian'],a:0,c:'dành',note:'Trong nghĩa để thời gian cho việc gì, dùng “dành thời gian”.'},
+  {p:['sả','rác'],a:0,c:'xả',note:'Cụm đúng là “xả rác”.'},
+  {p:['bừa','bải'],a:1,c:'bãi',note:'Cụm đúng là “bừa bãi”.'},
+  {p:['quét','rọọn'],a:1,c:'dọn',note:'Cụm đúng là “quét dọn”.'},
+  {p:['quét','rọn'],a:1,c:'dọn',note:'Cụm đúng là “quét dọn”.'},
+  {p:['nhặc','lá'],a:0,c:'nhặt',note:'Trong nghĩa gom/lấy lá lên, dùng “nhặt lá”.'},
+  {p:['sắp','sếp'],a:1,c:'xếp',note:'Cụm đúng là “sắp xếp”.'},
+  {p:['vất','vã'],a:1,c:'vả',note:'Cụm đúng là “vất vả”.'},
+  {p:['vui','vẽ'],a:1,c:'vẻ',note:'Cụm đúng là “vui vẻ”.'},
+  {p:['nhiệc','tình'],a:0,c:'nhiệt',note:'Cụm đúng là “nhiệt tình”.'},
+  {p:['nhắc','nhỡ'],a:1,c:'nhở',note:'Cụm đúng là “nhắc nhở”.'},
+  {p:['giử','gìn'],a:0,c:'giữ',note:'Cụm đúng là “giữ gìn”.'},
+  {p:['chia','sẽ'],a:1,c:'sẻ',note:'Trong nghĩa cùng chia cho nhau, dùng “chia sẻ”.'},
+  {p:['sẻ','cùng','nhau'],a:0,c:'sẽ',note:'Trong câu chỉ hành động tương lai, dùng “sẽ cùng nhau”.'},
+  {p:['xanh','xạch'],a:1,c:'sạch',note:'Cụm đúng là “xanh sạch đẹp”.'}
 ];
 
 function addVerifiedContextIssues(text,t,out,occ,addIssue){
@@ -2597,6 +2754,11 @@ function addDatabaseContextIssues(text,t,out,occ,addIssue,protectedTokens=new Se
   for(let i=0;i<t.length;i++){
     const rules=idx.get(t[i].k)||[];
     for(const r of rules){
+      // V6.2 CONTEXT-SAFE: chỉ dùng rule ngữ cảnh đã xác minh/ưu tiên cao.
+      // Rule sinh tự động hoặc priority thấp không được phép kết luận/sửa.
+      const _conf=String(r.confidence||'').toLowerCase();
+      const _prio=+r.priority||0;
+      if(!(/verified|curated/.test(_conf)||_prio>=1000))continue;
       const parts=r._parts,n=parts.length;if(i+n>t.length)continue;
       let ok=true;
       for(let z=0;z<n;z++){
@@ -2624,7 +2786,7 @@ function addDatabaseContextIssues(text,t,out,occ,addIssue,protectedTokens=new Se
       if(occupied2)continue;
       addIssue(ti,tj,decision.kind||'maybe',decision.kind==='error'?'Sai chính tả':'Nghi sai theo ngữ cảnh',[suggestion],
         r.explanation||`Trong cụm “${r.pattern}”, nên cân nhắc “${r.suggestion}”.`,{
-          contextRuleId:r.id||null,meaning:r.meaning||'',examples:r.example?[r.example]:[],dataSource:r.source||'',
+          contextRuleId:r.id||null,meaning:'',examples:[],dataSource:r.source||'',
           rulePriority:+r.priority||0,ruleConfidence:r.confidence||'',contextDecision:decision
         });
     }
@@ -2887,6 +3049,8 @@ function detect(text){
     for(let n=Math.min(5,t.length-i);n>=1;n--){
       const p=phrase(text,t,i,n);if(!p)continue;
       const e=known.get(key(p));if(!e)continue;
+      // V6.2: không sửa vô điều kiện một tiếng vốn là từ hợp lệ.
+      if(n===1 && (uc(t[i].k)>0 || state.dict.has(t[i].k))) continue;
       const ch=ruleChange(p,e.correct||'');
       if(ch&&ch.a.length===ch.b.length){
         const ti=i+ch.from,tj=i+ch.to;
@@ -2909,31 +3073,33 @@ function detect(text){
   const dictProtection=dictionaryExactProtection(text,t,occ);
   const protectedTokens=dictProtection.protectedTokens;
 
-  // 4. V6.0: dùng toàn bộ dictionary_words để cứu từ/cụm gần mục chuẩn,
-  //    nhưng không đụng vào các tiếng đã nằm trong một cụm chuẩn.
-  addDictionaryWordIssues(text,t,out,occ,addIssue,protectedTokens);
+  // 4. V6.6 PRECISION: KHÔNG tự sinh đáp án bằng edit-distance/dictionary fusion.
+  // Đây là nguồn tạo gợi ý gần chữ nhưng sai nghĩa (ví dụ nhặc -> nhắc/nhạc).
+  // Chỉ word_variants đã biên soạn + rule xác minh + context_rules xác minh mới được sửa.
+  // addDictionaryWordIssues(text,t,out,occ,addIssue,protectedTokens);
 
-  // 5. Cứu cặp 2 tiếng bằng bigram, nhưng tôn trọng cụm chuẩn từ dictionary_words.
-  addShortPhraseIssues(text,t,out,occ,addIssue,protectedTokens);
+  // 5. V6.2 CONTEXT-SAFE: KHÔNG cho bigram tự kết luận lỗi hay sinh phương án sửa.
+  // Bigram chỉ còn là bằng chứng phụ bên trong các rule/dictionary đã xác minh.
+  // addShortPhraseIssues(text,t,out,occ,addIssue,protectedTokens);
 
   // 6. context_rules từ database phải qua safety gate và không được phá cụm chuẩn.
   addDatabaseContextIssues(text,t,out,occ,addIssue,protectedTokens);
 
-  // 7. Deep context xét cả từ có thật trong corpus; dictionary_words làm lớp bảo vệ.
-  addDeepContextIssues(text,t,out,occ,addIssue,protectedTokens);
+  // 7. V6.2 CONTEXT-SAFE: tắt Deep Context tự suy đoán từ gần chữ.
+  // Đây là nguồn false-positive lớn khi từ thay thế có tần suất cao nhưng sai nghĩa câu.
+  // addDeepContextIssues(text,t,out,occ,addIssue,protectedTokens);
 
   // 8. Từ lạ: chỉ cảnh báo khi không có trong cả corpus lẫn dictionary_words
   //    và không nằm trong một cụm chuẩn đã được dictionary xác nhận.
   for(let i=0;i<t.length;i++){
     if(occ.has(i)||protectedTokens.has(i))continue;
     const w=t[i];if(uc(w.k)>0||state.dict.has(w.k)||isNameLike(text,w))continue;
-    const lexical=[
-      ...dictionaryLexicalCandidates(w.text,4).map(x=>x.w),
-      ...lexicalCandidates(w.text,4).map(x=>x.w)
-    ].filter((v,idx,a)=>a.indexOf(v)===idx).slice(0,5);
-    addIssue(i,i,'unknown','Từ lạ / cần xác minh',lexical,
-      'Không thấy từ này trong unigram hoặc dictionary_words và chưa có đủ bằng chứng ngữ cảnh để tự kết luận. Nếu là tên riêng hoặc thuật ngữ thì có thể bỏ qua.',
-      {dictionaryFusion:true});
+    // V6.2 CONTEXT-SAFE: từ lạ chỉ được CẢNH BÁO, không tự đưa các từ gần chữ làm đáp án.
+    // Edit-distance không hiểu nghĩa nên rất dễ sinh gợi ý vô nghĩa/sai ngữ cảnh.
+    // V6.3 PRECISION: không đưa từ chỉ vì corpus thiếu vào danh sách lỗi.
+    // Một từ không có trong unigram/dictionary KHÔNG đồng nghĩa với sai chính tả.
+    // Chỉ các lỗi có rule/dictionary/context đáng tin cậy mới xuất hiện ở kết quả.
+    continue;
   }
 
   const clean=out.filter(x=>x.kind==='error'||x.kind==='maybe'||x.kind==='unknown');
@@ -2941,9 +3107,24 @@ function detect(text){
   return clean.sort((a,b)=>a.start-b.start||(rank[b.kind]||0)-(rank[a.kind]||0)||b.end-a.end);
 }
 
+function syncMirrorMetrics(){
+  // Textarea có thể có scrollbar dọc (Windows thường ~15-17px) còn mirror thì không.
+  // Nếu không bù phần này, hai lớp sẽ wrap khác dòng và mọi highlight phía sau sẽ lệch.
+  const cs=getComputedStyle(editor);
+  const pr=parseFloat(cs.paddingRight)||0;
+  const bl=parseFloat(cs.borderLeftWidth)||0;
+  const br=parseFloat(cs.borderRightWidth)||0;
+  const scrollbar=Math.max(0,editor.offsetWidth-editor.clientWidth-bl-br);
+  mirror.style.paddingRight=`${pr+scrollbar}px`;
+}
+
 function renderMirror(text,issues){
-  const hi=[...issues].sort((a,b)=>{
-    const rank={error:5,unknown:4,context:3,maybe:2,sequence:1};
+  syncMirrorMetrics();
+  // Gộp lỗi hiện tại với các vị trí vừa sửa. Lỗi = đỏ; đã sửa = xanh lá + đậm giả lập
+  // để không thay đổi chiều rộng glyph và không làm lệch dòng so với textarea.
+  const corrected=(state.correctedMarks||[]).map(x=>({...x,kind:'corrected'}));
+  const hi=[...issues,...corrected].sort((a,b)=>{
+    const rank={error:5,unknown:4,context:3,maybe:2,sequence:1,corrected:0};
     return a.start-b.start||(rank[b.kind]||0)-(rank[a.kind]||0)||b.end-a.end;
   });
   const chosen=[];let lastEnd=-1;
@@ -2951,8 +3132,10 @@ function renderMirror(text,issues){
   let h='',cur=0;
   for(const x of chosen){
     h+=esc(text.slice(cur,x.start));
-    const cls=x.kind==='maybe'?'maybe':(x.kind==='unknown'?'maybe':'error');
-    h+=`<span class="mark ${cls}">${esc(text.slice(x.start,x.end))}</span>`;
+    const cls=x.kind==='corrected'?'corrected':(x.kind==='maybe'?'maybe':(x.kind==='unknown'?'maybe':'error'));
+    const a=state.issues?.[state.active];
+    const active=(x.kind!=='corrected'&&a&&a.start===x.start&&a.end===x.end)?' active-target':'';
+    h+=`<span class="mark ${cls}${active}" data-start="${x.start}" data-end="${x.end}">${esc(text.slice(x.start,x.end))}</span>`;
     cur=x.end;
   }
   h+=esc(text.slice(cur));
@@ -2963,6 +3146,18 @@ function renderMirror(text,issues){
   else editorBox?.classList.remove('checked-view');
   mirror.scrollTop=editor.scrollTop;mirror.scrollLeft=editor.scrollLeft;
 }
+
+function recordCorrection(start,oldEnd,repl){
+  if(!Array.isArray(state.correctedMarks))state.correctedMarks=[];
+  const delta=repl.length-(oldEnd-start);
+  // Các dấu xanh nằm sau vị trí sửa phải dịch theo độ dài mới. Dấu chồng lên vùng sửa được thay bằng dấu mới.
+  state.correctedMarks=state.correctedMarks
+    .filter(m=>m.end<=start || m.start>=oldEnd)
+    .map(m=>m.start>=oldEnd?{start:m.start+delta,end:m.end+delta}:m);
+  state.correctedMarks.push({start,end:start+repl.length});
+  state.correctedMarks.sort((a,b)=>a.start-b.start);
+}
+
 
 
 const suggestionDetailCache=new Map();
@@ -3019,9 +3214,11 @@ function detailForSuggestion(issue,suggestion){
     source:issue.dataSource||''
   } : {};
 
-  const meaning=cached.meaning||contextual.meaning||'';
-  const examples=(cached.examples?.length?cached.examples:contextual.examples)||[];
-  const source=cached.source||contextual.source||'';
+  // V6.2: không lấy nghĩa của một từ gần chữ để giải thích cho gợi ý heuristic.
+  const trustedDetail=!!(issue.verified||issue.contextRuleId||(issue.wordId&&!issue.dictionaryFusion));
+  const meaning=trustedDetail?(contextual.meaning||cached.meaning||''):'';
+  const examples=trustedDetail?((contextual.examples?.length?contextual.examples:cached.examples)||[]):[];
+  const source=trustedDetail?(contextual.source||cached.source||''):'';
   const group=confusionGroup(issue.text,suggestion);
   const concreteExample=group ? correctedSentenceExample(issue,suggestion) : '';
 
@@ -3091,27 +3288,49 @@ async function ensureSuggestionDetails(i){
 }
 
 function renderSuggestionOption(x,i,suggestion){
-  const d=detailForSuggestion(x,suggestion);
-  const meaning=d.meaning
-    ? `<div><b>Nghĩa:</b> ${esc(d.meaning)}</div>`
-    : `<div class="suggestion-loading">Chưa có nghĩa riêng trong database.</div>`;
-
-  let exampleHtml='';
-  if(d.group && d.concreteExample){
-    exampleHtml+=`<div><b>Ví dụ ${esc(d.group)} trong chính câu này:</b> ${esc(d.concreteExample)}</div>`;
-  }
-  if(d.examples?.length){
-    exampleHtml+=`<div><b>Ví dụ trong từ điển:</b><br>${d.examples.slice(0,2).map(e=>'• '+esc(e)).join('<br>')}</div>`;
-  }
-  const rule=d.group?`<span class="suggestion-rule">Dễ nhầm ${esc(d.group)}</span>`:'';
-
+  const group=confusionGroup(x.text,suggestion);
+  const rule=group?`<span class="suggestion-rule">Dễ nhầm ${esc(group)}</span>`:'';
   return `<div class="suggestion-option">
     <div class="suggestion-top">
       <button class="chip" data-apply="${i}" data-value="${esc(suggestion)}">${esc(suggestion)}</button>
       ${rule}
     </div>
-    <div class="suggestion-info">${meaning}${exampleHtml}</div>
   </div>`;
+}
+
+function scrollIssueCardToTop(i){
+  const el=issuesEl.querySelector(`[data-issue="${i}"]`);
+  if(!el)return false;
+
+  // V6.9: KHÔNG dùng offsetTop vì .issues nằm trong flex/overflow và
+  // issue-title dùng position:sticky. Tính theo tọa độ thật trong viewport
+  // rồi quy đổi về scrollTop của chính .issues.
+  const listRect=issuesEl.getBoundingClientRect();
+  const cardRect=el.getBoundingClientRect();
+  const delta=cardRect.top-listRect.top;
+  const max=Math.max(0,issuesEl.scrollHeight-issuesEl.clientHeight);
+  const target=Math.max(0,Math.min(max,issuesEl.scrollTop+delta));
+  issuesEl.scrollTop=target;
+
+  // Ép một lần nữa sau khi browser áp dụng scroll để triệt sai số 1-2px.
+  const cardRect2=el.getBoundingClientRect();
+  const delta2=cardRect2.top-listRect.top;
+  if(Math.abs(delta2)>1){
+    issuesEl.scrollTop=Math.max(0,Math.min(max,issuesEl.scrollTop+delta2));
+  }
+  return true;
+}
+
+function forceIssueCardToTop(i){
+  // Một số chi tiết/meaning được render bất đồng bộ và làm thay đổi chiều cao.
+  // Căn ở nhiều nhịp layout ngắn để mục đang chọn luôn kết thúc ở đúng đầu khung.
+  scrollIssueCardToTop(i);
+  requestAnimationFrame(()=>{
+    scrollIssueCardToTop(i);
+    requestAnimationFrame(()=>scrollIssueCardToTop(i));
+  });
+  setTimeout(()=>scrollIssueCardToTop(i),40);
+  setTimeout(()=>scrollIssueCardToTop(i),120);
 }
 
 function renderIssues(){
@@ -3123,17 +3342,18 @@ function renderIssues(){
     const suggestionOptions=(x.suggestions||[]).map(s=>renderSuggestionOption(x,i,s)).join('');
     const source=x.dataSource?`<div class="rule"><b>Nguồn:</b> ${esc(x.dataSource)}</div>`:'';
     return `<div class="issue ${esc(x.kind||'')} ${active?'active':''}" data-issue="${i}">
-      <div class="issue-title"><span class="word">${esc(x.text)}</span><span class="tag">• ${esc(x.title)}</span></div>
+      <div class="issue-title">
+        <span class="word">${esc(x.text)}</span><span class="tag">• ${esc(x.title)}</span>
+        ${active?`<button type="button" class="issue-skip-x" data-ignore="${i}" title="Bỏ qua lỗi này" aria-label="Bỏ qua lỗi này">×</button>`:''}
+      </div>
       <div class="issue-detail">
         ${suggestionOptions?`<div class="suggestion-options">${suggestionOptions}</div>`:''}
-        <div>${esc(x.detail||'')}</div>${source}
+        <div>${esc(x.detail||'')}</div>${source}<div style="margin-top:10px"><button type="button" class="mini-btn" data-ignore="${i}">Bỏ qua lỗi này</button></div>
       </div>
     </div>`;
-  }).join('');
-  setTimeout(()=>{
-    const el=issuesEl.querySelector(`[data-issue="${state.active}"]`);
-    el?.scrollIntoView({block:'nearest'});
-  },0);
+  }).join('') + '<div class="issue-tail-spacer" aria-hidden="true"></div>';
+  // V6.9: luôn cưỡng bức mục active lên SÁT ĐẦU vùng .issues.
+  forceIssueCardToTop(state.active);
 }
 
 
@@ -3176,7 +3396,6 @@ function runCheck(){
   renderMirror(text,state.issues);renderIssues();
   if(state.issues.length){
     ensureIssueDetails(state.active);
-    ensureSuggestionDetails(state.active);
   }
   $('wordCount').textContent=`${tokenize(text).length} từ`;
   const seq=state.issues.filter(x=>x.kind==='sequence').length;
@@ -3205,18 +3424,65 @@ async function ensureIssueDetails(i){
   }catch(_e){x._detailsLoaded=true;}
 }
 
+function scrollEditorToIssue(x){
+  syncMirrorMetrics();
+  const mark=mirror.querySelector(`.mark[data-start="${x.start}"][data-end="${x.end}"]`);
+  if(!mark)return;
+  // Dùng vị trí thật của span trong viewport rồi cộng lại scrollTop hiện tại.
+  // Cách này ổn định hơn offsetTop với inline span nằm trong nhiều dòng text.
+  const mr=mirror.getBoundingClientRect();
+  const rr=mark.getBoundingClientRect();
+  const markTop=mirror.scrollTop+(rr.top-mr.top);
+  const max=Math.max(0,Math.max(editor.scrollHeight,mirror.scrollHeight)-editor.clientHeight);
+  const target=Math.max(0,Math.min(max,markTop-Math.round(editor.clientHeight*.38)));
+  editor.scrollTop=target;
+  mirror.scrollTop=target;
+  editor.scrollLeft=mirror.scrollLeft=0;
+}
 function selectIssue(i){
   if(i<0||i>=state.issues.length)return;
-  state.active=i;renderIssues();
-  ensureIssueDetails(i);
-  ensureSuggestionDetails(i);
+  state.active=i;
+  renderMirror(editor.value,state.issues);
+  renderIssues();
+  // Đưa mục vừa chọn lên đầu ngay lập tức, bất kể danh sách trước đó đang cuộn ở đâu.
+  forceIssueCardToTop(i);
+  ensureIssueDetails(i).finally(()=>{
+    // Chi tiết tải bất đồng bộ có thể làm thay đổi chiều cao thẻ; căn lại một lần nữa.
+    forceIssueCardToTop(state.active);
+  });
   const x=state.issues[i];
-  editor.focus({preventScroll:true});
-  // V5.7: không bôi chọn chữ trong textarea; màu đỏ + đậm ở mirror đã chỉ đúng vị trí.
-  editor.setSelectionRange(x.end,x.end);
+  const box=editor.closest('.editorbox');
+  box?.classList.add('issue-focus');
+
+  // V6.7: selection thật vẫn được đặt để giữ vị trí logic/caret, nhưng nằm dưới mirror
+  // và hoàn toàn trong suốt. Người dùng nhìn thấy highlight chính xác từ span active-target.
+  requestAnimationFrame(()=>{
+    scrollEditorToIssue(x);
+    editor.focus({preventScroll:true});
+    editor.setSelectionRange(x.start,x.end,'forward');
+    requestAnimationFrame(()=>{
+      scrollEditorToIssue(x);
+      // Render lại sau scroll/focus để active-target luôn nằm đúng span cần chọn.
+      renderMirror(editor.value,state.issues);
+      mirror.scrollTop=editor.scrollTop;
+    });
+  });
 }
 
 issuesEl.addEventListener('click',e=>{
+  const ignore=e.target.closest('[data-ignore]');
+  if(ignore){
+    e.stopPropagation();
+    const i=+ignore.dataset.ignore;
+    if(i>=0&&i<state.issues.length){
+      state.issues.splice(i,1);
+      state.active=Math.min(i,state.issues.length-1);
+      if(state.active<0)state.active=0;
+      renderMirror(editor.value,state.issues);renderIssues();syncButtons();
+      if(state.issues.length) requestAnimationFrame(()=>selectIssue(state.active));
+    }
+    return;
+  }
   const chip=e.target.closest('[data-apply]');
   if(chip){
     e.stopPropagation();
@@ -3224,9 +3490,23 @@ issuesEl.addEventListener('click',e=>{
     const text=editor.value;
     const repl=preserve(x.text,val);
     editor.value=text.slice(0,x.start)+repl+text.slice(x.end);
+    recordCorrection(x.start,x.end,repl);
+    editor.closest('.editorbox')?.classList.remove('issue-focus');
     const p=x.start+repl.length;editor.setSelectionRange(p,p);runCheck();return;
   }
   const card=e.target.closest('[data-issue]');if(card)selectIssue(+card.dataset.issue);
+});
+// Bấm trực tiếp vào chữ đỏ trong vùng văn bản cũng chọn đúng lỗi đó.
+editor.addEventListener('click',()=>{
+  if(!state.issues.length)return;
+  const p=editor.selectionStart;
+  let i=state.issues.findIndex(x=>p>=x.start&&p<=x.end);
+  if(i<0){
+    let best=-1,dist=Infinity;
+    state.issues.forEach((x,j)=>{const d=Math.min(Math.abs(p-x.start),Math.abs(p-x.end));if(d<dist){dist=d;best=j}});
+    if(dist<=1)i=best;
+  }
+  if(i>=0)selectIssue(i);
 });
 $('prevBtn').addEventListener('click',()=>selectIssue(Math.max(0,state.active-1)));
 $('nextBtn').addEventListener('click',()=>selectIssue(Math.min(state.issues.length-1,state.active+1)));
@@ -3246,10 +3526,12 @@ $('checkBtn').addEventListener('click',async()=>{
 });
 /* V5.8: nút Xóa được xử lý tập trung bởi resetCheckerUI() phía dưới. */
 editor.addEventListener('scroll',()=>{mirror.scrollTop=editor.scrollTop;mirror.scrollLeft=editor.scrollLeft});
+window.addEventListener('resize',()=>{if(editor.value){syncMirrorMetrics();renderMirror(editor.value,state.issues||[]);}});
 
 let composing=false;
 function markDirty(){
-  editor.closest('.editorbox')?.classList.remove('checked-view');
+  state.correctedMarks=[];
+  editor.closest('.editorbox')?.classList.remove('checked-view','issue-focus');
   // V5.8: văn bản đã thay đổi thì kết quả cũ không còn giá trị.
   // Xóa mirror để tuyệt đối không còn chữ/gạch đỏ cũ nằm phía sau textarea.
   mirror.innerHTML='';
@@ -3343,13 +3625,14 @@ function resetCheckerUI(){
   // Dữ liệu văn bản + kết quả
   editor.value='';
   state.issues=[];
+  state.correctedMarks=[];
   state.active=0;
 
   // Lớp hiển thị lỗi
   mirror.innerHTML='';
   mirror.scrollTop=0;
   mirror.scrollLeft=0;
-  editor.closest('.editorbox')?.classList.remove('checked-view');
+  editor.closest('.editorbox')?.classList.remove('checked-view','issue-focus');
 
   // Cột kết quả bên phải: giống lúc chưa kiểm tra gì
   $('issueCount').textContent='0 mục';
@@ -3389,13 +3672,23 @@ $('clearBtn').addEventListener('click',(e)=>{
 },true);
 fixAllBtn.addEventListener('click',()=>{
   const list=fixableList();if(!list.length){showMode('check');return}
-  let text=editor.value;
+  const original=editor.value;
+  let text=original;
   for(const x of list.slice().reverse()){
     text=text.slice(0,x.start)+preserve(x.text,x.suggestions[0])+text.slice(x.end);
   }
+  // Tính chính xác vị trí các từ đã sửa trong văn bản cuối cùng.
+  let shift=0;
+  state.correctedMarks=[];
+  for(const x of list){
+    const repl=preserve(x.text,x.suggestions[0]);
+    const start=x.start+shift;
+    state.correctedMarks.push({start,end:start+repl.length});
+    shift+=repl.length-(x.end-x.start);
+  }
   editor.value=text;
-  state.issues=[];state.active=0;mirror.innerHTML='';
-  editor.closest('.editorbox')?.classList.remove('checked-view');
+  state.issues=[];state.active=0;
+  renderMirror(text,[]);
   renderIssues();
   $('wordCount').textContent=`${tokenize(text).length} từ`;
   $('warnline').style.display='none';
