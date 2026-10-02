@@ -857,6 +857,57 @@
     background:rgba(168,69,63,.055) !important;
   }
 
+
+  /* ===== V4.4: giải thích từng phương án thay thế ===== */
+  #panel-checker .v4-checker .suggestion-options{
+    display:grid;
+    gap:9px;
+    margin:8px 0 10px;
+  }
+  #panel-checker .v4-checker .suggestion-option{
+    border:1px solid rgba(169,192,212,.58);
+    border-radius:5px;
+    padding:9px 10px;
+    background:#fffdf6;
+  }
+  #panel-checker .v4-checker .suggestion-top{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  #panel-checker .v4-checker .suggestion-info{
+    margin-top:7px;
+    font-size:.76rem;
+    line-height:1.55;
+    color:var(--v4-muted);
+  }
+  #panel-checker .v4-checker .suggestion-info b{color:var(--v4-ink)}
+  #panel-checker .v4-checker .suggestion-rule{
+    display:inline-block;
+    margin-left:2px;
+    padding:2px 7px;
+    border-radius:999px;
+    background:rgba(169,130,63,.12);
+    color:#795d2a;
+    font-size:.68rem;
+    font-weight:700;
+  }
+  #panel-checker .v4-checker .suggestion-loading{
+    opacity:.75;
+    font-style:italic;
+  }
+  #panel-checker .v4-checker #copyTextBtn{
+    border-color:var(--v4-brass);
+    color:var(--v4-ink);
+    background:#f8f0d9;
+  }
+  #panel-checker .v4-checker #copyTextBtn.copied{
+    background:rgba(39,107,69,.12);
+    border-color:var(--green);
+    color:var(--green);
+  }
+
 </style>
   <link rel="icon" href="data:,">
 </head>
@@ -893,6 +944,7 @@
               <span id="wordCount" class="count">0 từ</span>
               <button id="clearBtn" class="btn secondary">Xoá</button>
               <button id="fixAllBtn" class="btn" style="display:none">Sửa tất cả</button>
+              <button id="copyTextBtn" class="btn secondary" style="display:none">Sao chép văn bản</button>
               <button id="checkBtn" class="btn">Kiểm tra</button>
             </div>
 
@@ -1042,6 +1094,13 @@
               <div class="admin-form">
                 <label>Mẫu cụm từ<input id="contextPattern" placeholder="Ví dụ: giành thời gian"></label>
                 <label>Giải thích<textarea id="contextExplanation" rows="2" placeholder="Giải thích ngắn gọn cho người dùng"></textarea></label>
+              </div>
+              <div class="admin-form">
+                <label>Nghĩa tiếng Việt<textarea id="contextMeaning" rows="2" placeholder="Nghĩa đúng trong ngữ cảnh này"></textarea></label>
+                <label>Ví dụ đúng<textarea id="contextExample" rows="2" placeholder="Câu ví dụ đã xác minh"></textarea></label>
+              </div>
+              <div class="admin-form">
+                <label>Nguồn<input id="contextSource" placeholder="Ví dụ: TVTD / Wiktionary / VDict"></label>
               </div>
               <div class="admin-form two">
                 <label>Độ ưu tiên<input id="contextPriority" type="number" value="100" min="0" max="10000"></label>
@@ -1608,7 +1667,7 @@ let contextRules=[];
 
 function openCache(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('chinh-ta-v42',1);
+    const req=indexedDB.open('chinh-ta-v43',1);
     req.onupgradeneeded=()=>req.result.createObjectStore('kv');
     req.onsuccess=()=>resolve(req.result);
     req.onerror=()=>reject(req.error);
@@ -1630,11 +1689,11 @@ async function loadContextRules(){
   try{
     const d=await gql(`query ContextRulesLight {
       context_rules(where:{is_active:{_eq:true}},order_by:[{priority:desc},{pattern:asc}]) {
-        id target pattern suggestion explanation confidence priority is_active
+        id target pattern suggestion explanation meaning example source confidence priority is_active
       }
     }`);
     contextRules=d.context_rules||[];
-    await cacheSet('context-rules-v42',contextRules);
+    await cacheSet('context-rules-v52',contextRules);
     return contextRules.length;
   }catch(err){
     console.warn('Context rules refresh skipped',err);
@@ -1903,12 +1962,29 @@ function addDatabaseContextIssues(text,t,out,occ,addIssue){
         if(z<parts.length-1&&!contiguous(text,t[i+z],t[i+z+1])){ok=false;break}
       }
       if(!ok)continue;
-      // target có thể xuất hiện nhiều lần; chọn vị trí đầu tiên khớp trong pattern.
-      const rel=parts.findIndex(x=>x===key(r.target));
+      // V5.2: target có thể là 1 từ HOẶC cả cụm nhiều tiếng.
+      const targetParts=key(r.target).split(/\s+/).filter(Boolean);
+      let rel=-1;
+      for(let p=0;p+targetParts.length<=parts.length;p++){
+        let same=true;
+        for(let z=0;z<targetParts.length;z++){
+          if(parts[p+z]!==targetParts[z]){same=false;break}
+        }
+        if(same){rel=p;break}
+      }
       if(rel<0)continue;
-      const ti=i+rel;
-      if(occ.has(ti))continue;
-      addIssue(ti,ti,'error','Sai chính tả',[r.suggestion],r.explanation||`Trong cụm “${r.pattern}”, nên dùng “${r.suggestion}”.`,{contextRuleId:r.id||null});
+      const ti=i+rel, tj=ti+targetParts.length-1;
+      let occupied=false;
+      for(let z=ti;z<=tj;z++)if(occ.has(z)){occupied=true;break}
+      if(occupied)continue;
+      addIssue(ti,tj,'error','Sai chính tả',[r.suggestion],
+        r.explanation||`Trong cụm “${r.pattern}”, nên dùng “${r.suggestion}”.`,
+        {
+          contextRuleId:r.id||null,
+          meaning:r.meaning||'',
+          examples:r.example?[r.example]:[],
+          dataSource:r.source||''
+        });
     }
   }
 }
@@ -2021,20 +2097,169 @@ function renderMirror(text,issues){
   mirror.scrollTop=editor.scrollTop;mirror.scrollLeft=editor.scrollLeft;
 }
 
+
+const suggestionDetailCache=new Map();
+
+function firstOnset(word){
+  const w=key(word).replace(/^[^a-zà-ỹđ]+/i,'');
+  if(w.startsWith('gi'))return 'gi';
+  if(w.startsWith('tr'))return 'tr';
+  if(w.startsWith('ch'))return 'ch';
+  return w.slice(0,1);
+}
+
+function confusionGroup(wrong,suggestion){
+  const a=firstOnset(wrong),b=firstOnset(suggestion);
+  if(a===b)return '';
+  const pair=new Set([a,b]);
+  if(pair.has('ch')&&pair.has('tr'))return 'Ch/Tr';
+  if(['d','gi','r'].includes(a)&&['d','gi','r'].includes(b))return 'D/Gi/R';
+  if(pair.has('s')&&pair.has('x'))return 'S/X';
+  if(pair.has('l')&&pair.has('n'))return 'L/N';
+  return '';
+}
+
+function correctedSentenceExample(issue,suggestion){
+  const text=editor.value||'';
+  let left=Math.max(
+    text.lastIndexOf('.',Math.max(0,issue.start-1)),
+    text.lastIndexOf('!',Math.max(0,issue.start-1)),
+    text.lastIndexOf('?',Math.max(0,issue.start-1)),
+    text.lastIndexOf('\n',Math.max(0,issue.start-1))
+  );
+  left=left<0?0:left+1;
+
+  const candidates=[
+    text.indexOf('.',issue.end),
+    text.indexOf('!',issue.end),
+    text.indexOf('?',issue.end),
+    text.indexOf('\n',issue.end)
+  ].filter(x=>x>=0);
+  let right=candidates.length?Math.min(...candidates)+1:text.length;
+
+  const before=text.slice(left,issue.start);
+  const after=text.slice(issue.end,right);
+  const repl=preserve(issue.text,suggestion);
+  return (before+repl+after).trim();
+}
+
+function detailForSuggestion(issue,suggestion){
+  const k=key(suggestion);
+  const cached=suggestionDetailCache.get(k)||{};
+  const contextual=(issue.suggestions||[])[0]===suggestion ? {
+    meaning:issue.meaning||'',
+    examples:issue.examples||[],
+    source:issue.dataSource||''
+  } : {};
+
+  const meaning=cached.meaning||contextual.meaning||'';
+  const examples=(cached.examples?.length?cached.examples:contextual.examples)||[];
+  const source=cached.source||contextual.source||'';
+  const group=confusionGroup(issue.text,suggestion);
+  const concreteExample=group ? correctedSentenceExample(issue,suggestion) : '';
+
+  return {meaning,examples,source,group,concreteExample};
+}
+
+async function ensureSuggestionDetails(i){
+  const x=state.issues[i];
+  if(!x || x._suggestionDetailsLoaded)return;
+
+  const suggestions=[...new Set((x.suggestions||[]).map(v=>key(v)).filter(Boolean))];
+  if(!suggestions.length){x._suggestionDetailsLoaded=true;return;}
+
+  const missing=suggestions.filter(w=>!suggestionDetailCache.has(w));
+  if(!missing.length){x._suggestionDetailsLoaded=true;renderIssues();return;}
+
+  try{
+    const d=await gql(`query SuggestionDetails($words:[String!]!){
+      dictionary_words(
+        where:{correct:{_in:$words},is_active:{_eq:true}}
+        order_by:{created_at:asc}
+      ){
+        id correct meaning note
+      }
+    }`,{words:missing});
+
+    const rows=d.dictionary_words||[];
+    const ids=rows.map(r=>r.id);
+    let examples=[];
+    if(ids.length){
+      const ex=await gql(`query SuggestionExamples($ids:[uuid!]!){
+        word_examples(
+          where:{dictionary_word_id:{_in:$ids}}
+          order_by:{created_at:asc}
+        ){
+          dictionary_word_id example
+        }
+      }`,{ids});
+      examples=ex.word_examples||[];
+    }
+
+    const emap=new Map();
+    for(const e of examples){
+      if(!emap.has(e.dictionary_word_id))emap.set(e.dictionary_word_id,[]);
+      const arr=emap.get(e.dictionary_word_id);
+      if(arr.length<2 && !arr.includes(e.example))arr.push(e.example);
+    }
+
+    for(const r of rows){
+      suggestionDetailCache.set(key(r.correct),{
+        meaning:r.meaning||'',
+        examples:emap.get(r.id)||[],
+        source:r.note||''
+      });
+    }
+    for(const w of missing){
+      if(!suggestionDetailCache.has(w))suggestionDetailCache.set(w,{meaning:'',examples:[],source:''});
+    }
+
+    x._suggestionDetailsLoaded=true;
+    renderIssues();
+  }catch(err){
+    console.warn('Suggestion details skipped:',err);
+    x._suggestionDetailsLoaded=true;
+    renderIssues();
+  }
+}
+
+function renderSuggestionOption(x,i,suggestion){
+  const d=detailForSuggestion(x,suggestion);
+  const meaning=d.meaning
+    ? `<div><b>Nghĩa:</b> ${esc(d.meaning)}</div>`
+    : `<div class="suggestion-loading">Chưa có nghĩa riêng trong database.</div>`;
+
+  let exampleHtml='';
+  if(d.group && d.concreteExample){
+    exampleHtml+=`<div><b>Ví dụ ${esc(d.group)} trong chính câu này:</b> ${esc(d.concreteExample)}</div>`;
+  }
+  if(d.examples?.length){
+    exampleHtml+=`<div><b>Ví dụ trong từ điển:</b><br>${d.examples.slice(0,2).map(e=>'• '+esc(e)).join('<br>')}</div>`;
+  }
+  const rule=d.group?`<span class="suggestion-rule">Dễ nhầm ${esc(d.group)}</span>`:'';
+
+  return `<div class="suggestion-option">
+    <div class="suggestion-top">
+      <button class="chip" data-apply="${i}" data-value="${esc(suggestion)}">${esc(suggestion)}</button>
+      ${rule}
+    </div>
+    <div class="suggestion-info">${meaning}${exampleHtml}</div>
+  </div>`;
+}
+
 function renderIssues(){
   $('issueCount').textContent=`${state.issues.length} mục`;
   if(!state.issues.length){issuesEl.innerHTML='<div class="empty">Không phát hiện vị trí đáng ngờ trong phạm vi mô hình hiện có.</div>';return}
   if(state.active>=state.issues.length)state.active=state.issues.length-1;
   issuesEl.innerHTML=state.issues.map((x,i)=>{
     const active=i===state.active;
-    const sug=(x.suggestions||[]).map(s=>`<button class="chip" data-apply="${i}" data-value="${esc(s)}">${esc(s)}</button>`).join('');
-    const examples=(x.examples||[]).length?`<div class="rule"><b>Ví dụ:</b><br>${x.examples.slice(0,3).map(e=>'• '+esc(e)).join('<br>')}</div>`:'';
-    const meaning=x.meaning?`<div class="rule"><b>Nghĩa:</b> ${esc(x.meaning)}</div>`:'';
+    const suggestionOptions=(x.suggestions||[]).map(s=>renderSuggestionOption(x,i,s)).join('');
+    const source=x.dataSource?`<div class="rule"><b>Nguồn:</b> ${esc(x.dataSource)}</div>`:'';
     return `<div class="issue ${active?'active':''}" data-issue="${i}">
       <div class="issue-title"><span class="word">${esc(x.text)}</span><span class="tag">• ${esc(x.title)}</span></div>
       <div class="issue-detail">
-        ${sug?`<div class="suggests">${sug}</div>`:''}
-        <div>${esc(x.detail||'')}</div>${meaning}${examples}
+        ${suggestionOptions?`<div class="suggestion-options">${suggestionOptions}</div>`:''}
+        <div>${esc(x.detail||'')}</div>${source}
       </div>
     </div>`;
   }).join('');
@@ -2071,6 +2296,10 @@ function runCheck(){
   const text=editor.value||'';
   state.issues=detect(text);state.active=Math.min(state.active,state.issues.length-1);if(state.active<0)state.active=0;
   renderMirror(text,state.issues);renderIssues();
+  if(state.issues.length){
+    ensureIssueDetails(state.active);
+    ensureSuggestionDetails(state.active);
+  }
   $('wordCount').textContent=`${tokenize(text).length} từ`;
   const seq=state.issues.filter(x=>x.kind==='sequence').length;
   const warn=$('warnline');
@@ -2102,6 +2331,7 @@ function selectIssue(i){
   if(i<0||i>=state.issues.length)return;
   state.active=i;renderIssues();
   ensureIssueDetails(i);
+  ensureSuggestionDetails(i);
   const x=state.issues[i];editor.focus();editor.setSelectionRange(x.start,x.end);
 }
 
@@ -2148,7 +2378,7 @@ editor.addEventListener('input',()=>{if(!composing)markDirty()});
 
 
 /* ====== Luồng nút: Kiểm tra → Sửa tất cả → Kiểm tra ====== */
-const fixAllBtn=$('fixAllBtn'),checkBtn=$('checkBtn');
+const fixAllBtn=$('fixAllBtn'),checkBtn=$('checkBtn'),copyTextBtn=$('copyTextBtn');
 const FIXABLE=new Set(['error']);   // đỏ + cam; vàng (maybe) và "từ lạ" chỉ là nghi ngờ nên không tự sửa
 function fixableList(){
   const arr=state.issues.filter(x=>FIXABLE.has(x.kind)&&(x.suggestions||[]).length)
@@ -2157,6 +2387,50 @@ function fixableList(){
   for(const x of arr){if(x.start>=last){out.push(x);last=x.end}}
   return out;
 }
+
+let copyReady=false;
+
+function setCopyReady(value){
+  copyReady=!!value && !!editor.value.trim();
+  copyTextBtn.style.display=copyReady?'':'none';
+  if(!copyReady){
+    copyTextBtn.classList.remove('copied');
+    copyTextBtn.textContent='Sao chép văn bản';
+  }
+}
+
+async function copyCorrectedText(){
+  const text=editor.value||'';
+  if(!text.trim())return;
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(text);
+    }else{
+      const tmp=document.createElement('textarea');
+      tmp.value=text;
+      tmp.setAttribute('readonly','');
+      tmp.style.position='fixed';
+      tmp.style.opacity='0';
+      document.body.appendChild(tmp);
+      tmp.select();
+      document.execCommand('copy');
+      tmp.remove();
+    }
+    copyTextBtn.textContent='✓ Đã sao chép';
+    copyTextBtn.classList.add('copied');
+    statusEl.textContent='Đã sao chép toàn bộ văn bản vào clipboard.';
+    setTimeout(()=>{
+      if(copyReady){
+        copyTextBtn.textContent='Sao chép văn bản';
+        copyTextBtn.classList.remove('copied');
+      }
+    },1500);
+  }catch(err){
+    statusEl.textContent='Không sao chép được tự động. Hãy chọn văn bản và nhấn Ctrl+C.';
+  }
+}
+copyTextBtn.addEventListener('click',copyCorrectedText);
+
 function showMode(mode){ // 'check' | 'fix'
   const fix=mode==='fix';
   fixAllBtn.style.display=fix?'':'none';
@@ -2164,8 +2438,15 @@ function showMode(mode){ // 'check' | 'fix'
 }
 function syncButtons(){
   const n=fixableList().length;
-  if(n){fixAllBtn.textContent=`Sửa tất cả (${n})`;showMode('fix')}
-  else showMode('check');
+  if(n){
+    setCopyReady(false);
+    fixAllBtn.textContent=`Sửa tất cả (${n})`;
+    showMode('fix');
+  }else{
+    showMode('check');
+    // Nếu đã kiểm tra và không còn lỗi có thể sửa, văn bản đã sẵn sàng để copy.
+    if(editor.value.trim() && state.issues.length===0)setCopyReady(true);
+  }
 }
 fixAllBtn.addEventListener('click',()=>{
   const list=fixableList();if(!list.length){showMode('check');return}
@@ -2178,8 +2459,9 @@ fixAllBtn.addEventListener('click',()=>{
   renderIssues();
   $('wordCount').textContent=`${tokenize(text).length} từ`;
   $('warnline').style.display='none';
-  statusEl.textContent=`Đã sửa ${list.length} chỗ · bấm “Kiểm tra” để kiểm tra lại (các mục vàng/“từ lạ” không tự sửa).`;
+  statusEl.textContent=`Đã sửa ${list.length} chỗ · có thể sao chép ngay hoặc bấm “Kiểm tra” để kiểm tra lại.`;
   showMode('check');
+  setCopyReady(true);
   editor.focus();
 });
 // sau mỗi lần kiểm tra → hiện nút Sửa tất cả nếu có gì để sửa
@@ -2187,9 +2469,14 @@ const _runCheck=runCheck;
 runCheck=function(){_runCheck();syncButtons()};
 // gõ/xoá/sửa lẻ từng chỗ → kết quả cũ không còn đúng, quay về nút Kiểm tra
 const _markDirty=markDirty;
-markDirty=function(){_markDirty();showMode('check')};
-$('clearBtn').addEventListener('click',()=>showMode('check'));
-issuesEl.addEventListener('click',e=>{if(e.target.closest('[data-apply]'))setTimeout(syncButtons,0)});
+markDirty=function(){_markDirty();showMode('check');setCopyReady(false)};
+$('clearBtn').addEventListener('click',()=>{showMode('check');setCopyReady(false)});
+issuesEl.addEventListener('click',e=>{
+  if(e.target.closest('[data-apply]')){
+    setCopyReady(false);
+    setTimeout(syncButtons,0);
+  }
+});
 
 (async()=>{
   await loadWrong();
@@ -2749,7 +3036,7 @@ async function loadContextAdminPage(reset=false){
     ]}:{};
     const d=await gql(`query AdminContext($limit:Int!,$offset:Int!,$where:context_rules_bool_exp!){
       context_rules(limit:$limit,offset:$offset,where:$where,order_by:[{priority:desc},{pattern:asc}]){
-        id target pattern suggestion explanation confidence priority is_active
+        id target pattern suggestion explanation meaning example source confidence priority is_active
       }
     }`,{limit:CONTEXT_PAGE_SIZE+1,offset:contextAdminPage*CONTEXT_PAGE_SIZE,where},true);
     if(seq!==contextReqSeq)return;
@@ -2764,7 +3051,7 @@ function renderContextAdminRows(){
   tbody.innerHTML=contextAdminRows.length?contextAdminRows.map(r=>`<tr>
     <td><b>${escapeHtml(r.pattern)}</b><br><span class="admin-muted">${escapeHtml(r.target)}</span></td>
     <td>${escapeHtml(r.suggestion)}</td>
-    <td>${escapeHtml(r.explanation||'')}</td>
+    <td>${escapeHtml(r.explanation||'')}${r.source?`<br><span class="admin-muted">Nguồn: ${escapeHtml(r.source)}</span>`:''}</td>
     <td>${r.priority??100}</td>
     <td><span class="admin-pill ${r.is_active?'':'off'}">${r.is_active?'Đang bật':'Tạm tắt'}</span></td>
     <td style="white-space:nowrap"><button class="mini-btn" data-ctx-edit="${r.id}">Sửa</button><button class="mini-btn danger" data-ctx-delete="${r.id}">Xóa</button></td>
@@ -2780,6 +3067,9 @@ function openContextForm(r=null){
   document.getElementById('contextPattern').value=r?.pattern||'';
   document.getElementById('contextSuggestion').value=r?.suggestion||'';
   document.getElementById('contextExplanation').value=r?.explanation||'';
+  document.getElementById('contextMeaning').value=r?.meaning||'';
+  document.getElementById('contextExample').value=r?.example||'';
+  document.getElementById('contextSource').value=r?.source||'';
   document.getElementById('contextPriority').value=r?.priority??100;
   document.getElementById('contextActive').checked=r?.is_active!==false;
   document.getElementById('contextFormMsg').textContent='';
@@ -2792,7 +3082,10 @@ async function saveContextRule(){
     pattern:document.getElementById('contextPattern').value.trim().toLowerCase(),
     suggestion:document.getElementById('contextSuggestion').value.trim().toLowerCase(),
     explanation:document.getElementById('contextExplanation').value.trim(),
-    confidence:'context',
+    meaning:document.getElementById('contextMeaning').value.trim(),
+    example:document.getElementById('contextExample').value.trim(),
+    source:document.getElementById('contextSource').value.trim(),
+    confidence:'verified',
     priority:parseInt(document.getElementById('contextPriority').value||'100',10),
     is_active:document.getElementById('contextActive').checked
   };
@@ -2834,7 +3127,7 @@ document.getElementById('contextRows')?.addEventListener('click',e=>{
 (async()=>{
   const [cached,cachedContext]=await Promise.all([
     cacheGet('checker-active-v42'),
-    cacheGet('context-rules-v42')
+    cacheGet('context-rules-v52')
   ]);
   if(Array.isArray(cached)&&cached.length){
     ACTIVE=cached;
